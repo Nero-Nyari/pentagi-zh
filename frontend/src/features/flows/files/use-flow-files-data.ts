@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import type { FileNode } from '@/components/shared/file-manager';
 
 import { FlowFilesDocument } from '@/graphql/types';
+import { useTranslation } from '@/hooks/use-translation';
 
 import { toFileNode } from './flow-files-utils';
 
@@ -28,6 +29,7 @@ const FLOW_FILES_ERROR_TOAST_ID = 'flow-files-error';
  * yet), so subsequent background `refetch` calls do not flash the skeleton.
  */
 export function useFlowFilesData({ flowId }: UseFlowFilesDataParams): UseFlowFilesDataResult {
+    const { t } = useTranslation();
     const flowFilesVariables = useMemo(() => ({ flowId: flowId ?? '' }), [flowId]);
 
     const {
@@ -42,12 +44,12 @@ export function useFlowFilesData({ flowId }: UseFlowFilesDataParams): UseFlowFil
 
     useEffect(() => {
         if (flowFilesError) {
-            toast.error('Failed to load files', {
+            toast.error(t('flows.files.toast.loadFailed'), {
                 description: flowFilesError.message,
                 id: FLOW_FILES_ERROR_TOAST_ID,
             });
         }
-    }, [flowFilesError]);
+    }, [flowFilesError, t]);
 
     const fileNodes = useMemo<FileNode[]>(
         () => (flowFilesData?.flowFiles ?? []).map(toFileNode),

@@ -3,22 +3,29 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 import type { OverwriteOutcome } from '@/components/shared/overwrite';
+import type { Translator } from '@/lib/i18n/types';
 
-import { pluralizeItems } from '@/components/shared/file-manager';
+import { useTranslation } from '@/hooks/use-translation';
 import { api, getApiErrorMessage, getApiErrorStatusCode } from '@/lib/axios';
 
 import { RESOURCES_COPY_API_PATH } from './resources-constants';
 
-export const resourcesCopyFormSchema = z.object({
-    destination: z
-        .string()
-        .trim()
-        .min(1, { message: 'Destination cannot be empty' })
-        .refine((value) => !value.startsWith('/'), { message: 'Destination must be a relative path' })
-        .refine((value) => !value.split('/').includes('..'), { message: 'Destination must not contain ".."' }),
-});
+// 校验消息随语言切换，因此 schema 由 t 工厂生成；调用方在组件内 useMemo 生成本地化实例。
+export const createResourcesCopyFormSchema = (t: Translator) =>
+    z.object({
+        destination: z
+            .string()
+            .trim()
+            .min(1, { message: t('resources.destinationForm.validation.required') })
+            .refine((value) => !value.startsWith('/'), {
+                message: t('resources.destinationForm.validation.relative'),
+            })
+            .refine((value) => !value.split('/').includes('..'), {
+                message: t('resources.destinationForm.validation.noParent'),
+            }),
+    });
 
-export type ResourcesCopyFormValues = z.infer<typeof resourcesCopyFormSchema>;
+export type ResourcesCopyFormValues = z.infer<ReturnType<typeof createResourcesCopyFormSchema>>;
 
 interface CopyRequestBody {
     destination: string;
@@ -45,6 +52,7 @@ interface UseResourcesCopyResult {
 
 /** Wraps `POST /resources/copy` for single and batch copy operations. */
 export function useResourcesCopy(): UseResourcesCopyResult {
+    const { t } = useTranslation();
     const [isCopying, setIsCopying] = useState(false);
 
     const copy = useCallback(
@@ -64,10 +72,13 @@ export function useResourcesCopy(): UseResourcesCopyResult {
 
                 const description =
                     sources.length === 1
-                        ? `Copied to /${destination}`
-                        : `Copied ${sources.length} ${pluralizeItems(sources.length)} into /${destination}`;
+                        ? t('resources.copyDialog.success.single', { destination })
+                        : t('resources.copyDialog.success.multi', {
+                              count: sources.length,
+                              destination,
+                          });
 
-                toast.success('Resource copied', { description });
+                toast.success(t('resources.copyDialog.success.title'), { description });
 
                 return { kind: 'ok' };
             } catch (error) {
@@ -75,16 +86,16 @@ export function useResourcesCopy(): UseResourcesCopyResult {
                     return { kind: 'conflict' };
                 }
 
-                const description = getApiErrorMessage(error, 'Failed to copy resource');
+                const description = getApiErrorMessage(error, t('resources.copyDialog.error.fallback'));
 
-                toast.error('Copy failed', { description });
+                toast.error(t('resources.copyDialog.error.title'), { description });
 
                 return { kind: 'error' };
             } finally {
                 setIsCopying(false);
             }
         },
-        [],
+        [t],
     );
 
     return {

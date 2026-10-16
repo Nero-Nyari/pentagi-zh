@@ -5,14 +5,46 @@
 >
     <head>
         <meta charset="UTF-8" />
-        <!-- The UI is English-only. Browser auto-translation is one known trigger of
-             a DOM desync (it swaps text nodes React owns), so opt the document out of
-             it. Defense-in-depth only: the route errorElement recovers from such
-             desyncs (extension or translation) regardless of source. -->
+        <!-- The UI translates itself (see `src/lib/i18n`), so browser
+             auto-translation is both redundant and harmful: it swaps text nodes
+             React owns, which is a known source of DOM desync. Opt the document
+             out of it. Defense-in-depth only: the route errorElement recovers
+             from such desyncs (extension or translation) regardless of source. -->
         <meta
             name="google"
             content="notranslate"
         />
+
+        <!-- Stamp <html lang> before React mounts, so the very first paint already
+             carries the right value — font fallback, hyphenation, and the
+             browser's own translate prompt all key off it. Mirrors the
+             stored-else-detected rule in LanguageProvider, which takes over and
+             keeps it in step once mounted. `lang="en"` above stays as the
+             no-JavaScript default. -->
+        <script>
+            (function () {
+                try {
+                    var stored = JSON.parse(localStorage.getItem('language') || 'null');
+                    var language = stored === 'en' || stored === 'zh' ? stored : null;
+
+                    if (!language) {
+                        var preferred = navigator.languages || [navigator.language];
+                        language = 'en';
+
+                        for (var index = 0; index < preferred.length; index += 1) {
+                            if (String(preferred[index]).toLowerCase().indexOf('zh') === 0) {
+                                language = 'zh';
+                                break;
+                            }
+                        }
+                    }
+
+                    document.documentElement.lang = language;
+                } catch (error) {
+                    /* storage unavailable in this context — the provider's default applies */
+                }
+            })();
+        </script>
         <meta
             name="viewport"
             content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"

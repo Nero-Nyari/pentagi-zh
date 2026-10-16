@@ -3,9 +3,10 @@ import type { LucideIcon } from 'lucide-react';
 import { CheckCircle2, CircleDashed, CircleX, Clock, Loader2, PlayCircle } from 'lucide-react';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { flowStatusLabelKeys } from '@/features/flows/flow-status-label';
 import { StatusType } from '@/graphql/types';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
-import { formatName } from '@/lib/utils/format';
 
 interface FlowTaskStatusIconProps {
     className?: string;
@@ -23,10 +24,11 @@ const statusIcons: Record<StatusType, { className: string; icon: LucideIcon }> =
 const defaultIcon = { className: 'text-muted-foreground', icon: CircleDashed };
 
 function FlowTaskStatusIcon({ className, status, tooltip }: FlowTaskStatusIconProps) {
+    const { t } = useTranslation();
     const { className: defaultClassName, icon: Icon } = status ? statusIcons[status] || defaultIcon : defaultIcon;
     const iconElement = (
         <Icon
-            aria-label={status ? formatName(status) : 'Unknown'}
+            aria-label={status ? t(flowStatusLabelKeys[status]) : t('flows.common.unknown')}
             className={cn('size-4 shrink-0', defaultClassName, tooltip && 'cursor-pointer', className)}
             role="img"
         />
@@ -39,7 +41,7 @@ function FlowTaskStatusIcon({ className, status, tooltip }: FlowTaskStatusIconPr
     return (
         <Tooltip>
             <TooltipTrigger asChild>{iconElement}</TooltipTrigger>
-            <TooltipContent>{formatName(tooltip)}</TooltipContent>
+            <TooltipContent>{tooltip}</TooltipContent>
         </Tooltip>
     );
 }

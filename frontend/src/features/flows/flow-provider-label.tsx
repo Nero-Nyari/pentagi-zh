@@ -2,6 +2,7 @@ import { AlertCircle } from 'lucide-react';
 
 import { ProviderIcon } from '@/components/icons/provider-icon';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 import { isProviderMissing, type Provider } from '@/models/provider';
 
@@ -12,6 +13,7 @@ interface FlowProviderLabelProps {
 }
 
 export function FlowProviderLabel({ isOwnFlow, provider, providers }: FlowProviderLabelProps) {
+    const { t } = useTranslation();
     const isMissing = isOwnFlow && isProviderMissing(provider, providers);
 
     return (
@@ -33,13 +35,13 @@ export function FlowProviderLabel({ isOwnFlow, provider, providers }: FlowProvid
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <AlertCircle
-                            aria-label="Unavailable"
+                            aria-label={t('flows.detail.unavailable')}
                             className="text-destructive size-4 shrink-0 cursor-pointer"
                             role="img"
                             tabIndex={0}
                         />
                     </TooltipTrigger>
-                    <TooltipContent>Unavailable</TooltipContent>
+                    <TooltipContent>{t('flows.detail.unavailable')}</TooltipContent>
                 </Tooltip>
             )}
         </div>

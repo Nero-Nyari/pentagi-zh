@@ -22,6 +22,7 @@ import {
     UpdateKnowledgeDocumentDocument,
 } from '@/graphql/types';
 import { useLatestRef } from '@/hooks/use-latest-ref';
+import { useTranslation } from '@/hooks/use-translation';
 import { Log } from '@/lib/log';
 import { URL_PARAMS } from '@/lib/url-params';
 import { useUser } from '@/providers/user-provider';
@@ -54,6 +55,7 @@ const SEARCH_RESULT_LIMIT = 100;
 const SEARCH_DEBOUNCE_MS = 400;
 
 export function KnowledgesProvider({ children }: KnowledgesProviderProps) {
+    const { t } = useTranslation();
     const { authInfo, isAuthenticated } = useUser();
 
     const shouldFetch = Boolean(authInfo && authInfo.type !== 'guest' && isAuthenticated());
@@ -153,13 +155,13 @@ export function KnowledgesProvider({ children }: KnowledgesProviderProps) {
 
                 return result?.createKnowledgeDocument;
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Failed to create knowledge document';
-                toast.error('Failed to create knowledge document', { description: errorMessage });
+                const errorMessage = error instanceof Error ? error.message : t('knowledges.error.create');
+                toast.error(t('knowledges.error.create'), { description: errorMessage });
                 Log.error('Error creating knowledge document:', error);
                 throw error;
             }
         },
-        [createKnowledgeMutation],
+        [createKnowledgeMutation, t],
     );
 
     const updateKnowledge = useCallback(
@@ -169,13 +171,13 @@ export function KnowledgesProvider({ children }: KnowledgesProviderProps) {
 
                 return result?.updateKnowledgeDocument;
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Failed to update knowledge document';
-                toast.error('Failed to update knowledge document', { description: errorMessage });
+                const errorMessage = error instanceof Error ? error.message : t('knowledges.error.update');
+                toast.error(t('knowledges.error.update'), { description: errorMessage });
                 Log.error('Error updating knowledge document:', error);
                 throw error;
             }
         },
-        [updateKnowledgeMutation],
+        [updateKnowledgeMutation, t],
     );
 
     const renameKnowledge = useCallback(
@@ -185,13 +187,13 @@ export function KnowledgesProvider({ children }: KnowledgesProviderProps) {
 
                 return result?.renameKnowledgeDocument;
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Failed to rename knowledge document';
-                toast.error('Failed to rename knowledge document', { description: errorMessage });
+                const errorMessage = error instanceof Error ? error.message : t('knowledges.error.rename');
+                toast.error(t('knowledges.error.rename'), { description: errorMessage });
                 Log.error('Error renaming knowledge document:', error);
                 throw error;
             }
         },
-        [renameKnowledgeMutation],
+        [renameKnowledgeMutation, t],
     );
 
     const deleteKnowledge = useCallback(
@@ -199,13 +201,13 @@ export function KnowledgesProvider({ children }: KnowledgesProviderProps) {
             try {
                 await deleteKnowledgeMutation({ variables: { id } });
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Failed to delete knowledge document';
-                toast.error('Failed to delete knowledge document', { description: errorMessage });
+                const errorMessage = error instanceof Error ? error.message : t('knowledges.error.delete');
+                toast.error(t('knowledges.error.delete'), { description: errorMessage });
                 Log.error('Error deleting knowledge document:', error);
                 throw error;
             }
         },
-        [deleteKnowledgeMutation],
+        [deleteKnowledgeMutation, t],
     );
 
     const value = useMemo<KnowledgesContextValue>(

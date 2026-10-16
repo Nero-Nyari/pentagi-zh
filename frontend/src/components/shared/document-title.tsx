@@ -1,9 +1,12 @@
 import { useMatches } from 'react-router-dom';
 
+import type { Translator } from '@/lib/i18n/types';
+
+import { useTranslation } from '@/hooks/use-translation';
 import { type ApolloTitleComponent, isApolloTitle } from '@/lib/route-titles/apollo-title';
 import { renderTitle, type RouteParams } from '@/lib/route-titles/render-title';
 
-type TitleResolver = ((params: RouteParams) => string) | ApolloTitleComponent | string;
+type TitleResolver = ((params: RouteParams, t: Translator) => string) | ApolloTitleComponent | string;
 
 const hasTitle = (handle: unknown): handle is { title: TitleResolver } => {
     if (typeof handle !== 'object' || handle === null || !('title' in handle)) {
@@ -34,6 +37,10 @@ const hasTitle = (handle: unknown): handle is { title: TitleResolver } => {
  * See https://react.dev/reference/react-dom/components/title.
  */
 export function DocumentTitle() {
+    // Subscribing to the context is what re-runs this (and the resolvers
+    // below) on a language switch; the translator itself is only handed to
+    // `(params, t)` resolvers.
+    const { t } = useTranslation();
     const matches = useMatches();
     const match = matches.findLast((m) => hasTitle(m.handle));
 
@@ -53,5 +60,5 @@ export function DocumentTitle() {
         return <TitleComp params={match.params} />;
     }
 
-    return renderTitle(value(match.params));
+    return renderTitle(value(match.params, t));
 }

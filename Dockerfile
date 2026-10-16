@@ -67,6 +67,11 @@ ARG PACKAGE_EDITION=ce
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
 
+# Module proxy: upstream builds keep the default, local builds point it at a mirror through
+# the compose override because proxy.golang.org is unreachable on some networks.
+ARG GOPROXY=https://proxy.golang.org,direct
+ENV GOPROXY=${GOPROXY}
+
 # Install compilation toolchain and dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \

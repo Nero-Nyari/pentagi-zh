@@ -6,6 +6,7 @@ import { useDebouncedCallback } from 'use-debounce';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 import { isMac } from '@/lib/utils/platform';
 
@@ -33,14 +34,19 @@ interface InputSearchProps {
  * through `handleClear`. A second `Escape` on an empty field collapses + blurs.
  */
 export function InputSearch({
-    ariaLabel = 'Search',
+    ariaLabel,
     className,
     hotkey = 'f',
     maxWidth = 140,
     onSearchChange,
-    placeholder = 'Search...',
+    placeholder,
     searchQuery,
 }: InputSearchProps) {
+    const { t } = useTranslation();
+    // Callers keep full control when they pass their own copy; the localized
+    // defaults only kick in for the common icon-only usage.
+    const resolvedAriaLabel = ariaLabel ?? t('ui.search.ariaLabel');
+    const resolvedPlaceholder = placeholder ?? t('ui.search.placeholder');
     const [isExpanded, setIsExpanded] = useState(() => searchQuery.trim().length > 0);
     const inputRef = useRef<HTMLInputElement>(null);
     const [localValue, setLocalValue] = useState(searchQuery);
@@ -71,21 +77,21 @@ export function InputSearch({
 
     const tooltipContent = useMemo(() => {
         if (!hotkey) {
-            return placeholder;
+            return resolvedPlaceholder;
         }
 
         const modifier = isMac() ? '⌘' : 'Ctrl';
 
         return (
             <>
-                {placeholder}{' '}
+                {resolvedPlaceholder}{' '}
                 <KbdGroup>
                     <Kbd>{modifier}</Kbd>
                     <Kbd>{hotkey.toUpperCase()}</Kbd>
                 </KbdGroup>
             </>
         );
-    }, [hotkey, placeholder]);
+    }, [hotkey, resolvedPlaceholder]);
 
     // `rAF` so motion's transform has started before we focus — otherwise the
     // caret lands on a zero-width box.
@@ -209,7 +215,7 @@ export function InputSearch({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <InputGroupButton
-                                aria-label={ariaLabel}
+                                aria-label={resolvedAriaLabel}
                                 onClick={expand}
                                 size="icon-sm"
                                 type="button"
@@ -232,12 +238,12 @@ export function InputSearch({
                 transition={{ duration: 0.1, ease: 'easeOut' }}
             >
                 <InputGroupInput
-                    aria-label={ariaLabel}
+                    aria-label={resolvedAriaLabel}
                     className="h-8 min-w-0 py-0 pl-2"
                     onBlur={handleInputBlur}
                     onChange={handleChange}
                     onKeyDown={handleInputKeyDown}
-                    placeholder={placeholder}
+                    placeholder={resolvedPlaceholder}
                     ref={inputRef}
                     style={{ width: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth }}
                     type="text"
@@ -247,7 +253,7 @@ export function InputSearch({
             {isExpanded && localValue ? (
                 <InputGroupAddon align="inline-end">
                     <InputGroupButton
-                        aria-label={`Clear ${ariaLabel.toLowerCase()}`}
+                        aria-label={t('ui.search.clear', { label: resolvedAriaLabel.toLowerCase() })}
                         onClick={handleClear}
                         type="button"
                     >

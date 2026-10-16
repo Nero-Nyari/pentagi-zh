@@ -9,6 +9,10 @@ import { WebglAddon } from '@xterm/addon-webgl';
 import { Terminal } from '@xterm/xterm';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { Translator } from '@/lib/i18n/types';
+
+import { useLatestRef } from '@/hooks/use-latest-ref';
+import { useTranslation } from '@/hooks/use-translation';
 import { Log } from '@/lib/log';
 import { isMac } from '@/lib/utils/platform';
 
@@ -43,6 +47,9 @@ export interface XtermHostElement extends HTMLDivElement {
  * https://xtermjs.org/docs/guides/link-handling/
  */
 export function useXterm({ theme }: { theme: 'dark' | 'light' | 'system' }): UseXtermResult {
+    const { t } = useTranslation();
+    // 链接提示在悬停时异步读取翻译，用 ref 跟随最新语言，避免重建整个 xterm 实例。
+    const translatorRef = useLatestRef(t);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const terminalRef = useRef<null | Terminal>(null);
     const writeTokenRef = useRef(0);
@@ -119,14 +126,14 @@ export function useXterm({ theme }: { theme: 'dark' | 'light' | 'system' }): Use
         const linkHandler: ILinkHandler = {
             activate: (event, text) => openLink(event, text),
             allowNonHttpProtocols: true,
-            hover: (event, text) => showLinkTooltip(container, event, text, mac),
+            hover: (event, text) => showLinkTooltip(container, event, text, mac, translatorRef.current),
             leave: () => removeLinkTooltip(container),
         };
 
         terminal.options.linkHandler = linkHandler;
 
         const webLinksAddon = new WebLinksAddon(openLink, {
-            hover: (event, text) => showLinkTooltip(container, event, text, mac),
+            hover: (event, text) => showLinkTooltip(container, event, text, mac, translatorRef.current),
             leave: () => removeLinkTooltip(container),
         });
 
@@ -237,7 +244,8 @@ export function useXterm({ theme }: { theme: 'dark' | 'light' | 'system' }): Use
             setSearchAddon(null);
             setIsReady(false);
         };
-    }, []);
+        // `translatorRef` 是稳定引用（useLatestRef），入列只为满足 exhaustive-deps 且不会重建实例。
+    }, [translatorRef]);
 
     useEffect(() => {
         const terminal = terminalRef.current;
@@ -328,7 +336,7 @@ function removeLinkTooltip(container: HTMLElement): void {
     }
 }
 
-function showLinkTooltip(container: HTMLElement, event: MouseEvent, uri: string, mac: boolean): void {
+function showLinkTooltip(container: HTMLElement, event: MouseEvent, uri: string, mac: boolean, t: Translator): void {
     removeLinkTooltip(container);
 
     const tooltip = document.createElement('div');
@@ -345,7 +353,7 @@ function showLinkTooltip(container: HTMLElement, event: MouseEvent, uri: string,
 
     const hint = document.createElement('div');
     hint.style.cssText = 'opacity:0.6;font-size:11px;margin-top:2px';
-    hint.textContent = `${mac ? 'Cmd' : 'Ctrl'}+Click to open`;
+    hint.textContent = t('shared.terminal.openLinkHint', { modifier: mac ? 'Cmd' : 'Ctrl' });
     tooltip.appendChild(hint);
 
     container.style.position = 'relative';

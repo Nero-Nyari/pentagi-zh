@@ -10,11 +10,12 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 
 import type { FileManagerBulkAction, FileManagerLabels, FileNode } from './file-manager-types';
 
-import { formatFileSize, pluralizeItemsEnglish } from './file-manager-utils';
+import { formatFileSize } from './file-manager-utils';
 
 interface BulkActionButtonProps {
     action: FileManagerBulkAction;
@@ -65,6 +66,7 @@ export function FileManagerBulkActionsBar({
     selectedCount,
     selectionTotalBytes,
 }: FileManagerBulkActionsBarProps) {
+    const { t } = useTranslation();
     const [pendingAction, setPendingAction] = useState<FileManagerBulkAction | null>(null);
 
     const dedupedFiles = useMemo(() => {
@@ -133,13 +135,14 @@ export function FileManagerBulkActionsBar({
         return null;
     }
 
-    const pluralize = labels.pluralizeItems ?? pluralizeItemsEnglish;
+    const pluralize = labels.pluralizeItems ?? ((count: number) => t('shared.fileManager.items', { count }));
     const countLabel = pluralize(affectedCount);
-    const baseSelectedText = labels.selectedLabel?.(affectedCount) ?? `${affectedCount} selected`;
+    const baseSelectedText =
+        labels.selectedLabel?.(affectedCount) ?? t('shared.fileManager.selectedCount', { count: affectedCount });
     const sizeSuffix = (labels.formatSelectionSize ?? formatFileSize)(selectionTotalBytes);
     const selectedText = sizeSuffix ? `${baseSelectedText} · ${sizeSuffix}` : baseSelectedText;
-    const cancelText = labels.bulkCancel ?? 'Cancel';
-    const moreActionsText = labels.bulkMoreActions ?? 'More actions';
+    const cancelText = labels.bulkCancel ?? t('shared.fileManager.bulkCancel');
+    const moreActionsText = labels.bulkMoreActions ?? t('shared.fileManager.moreActions');
 
     return (
         <>

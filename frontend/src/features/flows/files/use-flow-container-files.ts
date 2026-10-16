@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FileNode } from '@/components/shared/file-manager';
 
 import { buildPathsQuery } from '@/features/resources/resources-utils';
+import { useTranslation } from '@/hooks/use-translation';
 import { api, getApiErrorMessage, unwrapApiResponse } from '@/lib/axios';
 
 import { FLOW_FILES_CONTAINER_API_PATH } from './flow-files-constants';
@@ -54,6 +55,7 @@ interface UseFlowContainerFilesResult {
  * is issued, `files` stays an empty array, `isLoading` stays `false`.
  */
 export function useFlowContainerFiles({ flowId, paths }: UseFlowContainerFilesParams): UseFlowContainerFilesResult {
+    const { t } = useTranslation();
     const [files, setFiles] = useState<FileNode[]>([]);
     const [failures, setFailures] = useState<ContainerFileFailure[]>([]);
     const [truncated, setTruncated] = useState(false);
@@ -112,7 +114,7 @@ export function useFlowContainerFiles({ flowId, paths }: UseFlowContainerFilesPa
             // trees; opt out of the default 30s axios timeout so the dialog
             // doesn't fail spuriously while the kernel walks /proc, /sys, etc.
             const response = await api.get<ContainerFilesResponse>(url, { timeout: 0 });
-            const data = unwrapApiResponse(response);
+            const data = unwrapApiResponse(response, t);
 
             if (token !== currentTokenRef.current) {
                 return;
@@ -126,7 +128,7 @@ export function useFlowContainerFiles({ flowId, paths }: UseFlowContainerFilesPa
                 return;
             }
 
-            setError(new Error(getApiErrorMessage(caught, 'Failed to load container files')));
+            setError(new Error(getApiErrorMessage(caught, t('flows.files.toast.containerLoadFailed'))));
             setFiles([]);
             setFailures([]);
             setTruncated(false);
@@ -135,7 +137,7 @@ export function useFlowContainerFiles({ flowId, paths }: UseFlowContainerFilesPa
                 setIsLoading(false);
             }
         }
-    }, [flowId, paths, pathsKey]);
+    }, [flowId, paths, pathsKey, t]);
 
     useEffect(() => {
         // fetchListing is an async callback that handles its own loading state via setState

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
+import type { TranslationKey, Translator } from '@/lib/i18n/types';
 import type { OAuthProvider } from '@/providers/user-provider';
 
 import Github from '@/components/icons/github';
@@ -12,47 +13,51 @@ import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
 import { InputPassword } from '@/components/ui/input-password';
 import { useAppForm } from '@/hooks/use-app-form';
+import { useTranslation } from '@/hooks/use-translation';
 import { routes } from '@/lib/routes';
 import { useUser } from '@/providers/user-provider';
 
 import { PasswordChangeForm } from './password-change-form';
 
-const formSchema = z.object({
-    mail: z
-        .string()
-        .min(1, {
-            message: 'Login is required',
-        })
-        .refine(
-            (value) => z.string().email().safeParse(value).success || ['admin', 'demo'].includes(value.toLowerCase()),
-            {
-                message: 'Invalid login',
-            },
-        ),
-    password: z.string().min(1, {
-        message: 'Password is required',
-    }),
-});
-
-const errorMessage = 'Invalid login or password';
-const errorProviderMessage = 'Authentication failed';
+// 校验消息随语言变化，因此 schema 由 t 工厂生成，而不是模块级常量。
+const createFormSchema = (t: Translator) =>
+    z.object({
+        mail: z
+            .string()
+            .min(1, {
+                message: t('auth.login.errors.loginRequired'),
+            })
+            .refine(
+                (value) =>
+                    z.string().email().safeParse(value).success || ['admin', 'demo'].includes(value.toLowerCase()),
+                {
+                    message: t('auth.login.errors.invalidLogin'),
+                },
+            ),
+        password: z.string().min(1, {
+            message: t('auth.login.errors.passwordRequired'),
+        }),
+    });
 
 interface AuthProviderAction {
     icon: React.ReactNode;
     id: OAuthProvider;
-    name: string;
+    /** 模块级常量只存键，渲染时再按当前语言取文案。 */
+    nameKey: TranslationKey;
 }
+
+type LoginFormValues = z.infer<ReturnType<typeof createFormSchema>>;
 
 const providerActions: AuthProviderAction[] = [
     {
         icon: <Google className="size-5" />,
         id: 'google',
-        name: 'Continue with Google',
+        nameKey: 'auth.login.continueWithGoogle',
     },
     {
         icon: <Github className="size-5" />,
         id: 'github',
-        name: 'Continue with GitHub',
+        nameKey: 'auth.login.continueWithGitHub',
     },
 ];
 
@@ -62,7 +67,9 @@ interface LoginFormProps {
 }
 
 function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
-    const form = useAppForm<z.infer<typeof formSchema>>({
+    const { t } = useTranslation();
+    const formSchema = useMemo(() => createFormSchema(t), [t]);
+    const form = useAppForm<LoginFormValues>({
         defaultValues: {
             mail: '',
             password: '',
@@ -75,7 +82,10 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
     const navigate = useNavigate();
     const { authInfo, isAuthenticated, login, loginWithOAuth, setAuth } = useUser();
 
-    const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+    const errorMessage = t('auth.login.errors.invalidCredentials');
+    const errorProviderMessage = t('auth.login.errors.authFailed');
+
+    const handleSubmit = async (values: LoginFormValues) => {
         setError(null);
 
         try {
@@ -154,9 +164,9 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
     if (shouldShowPasswordChange) {
         return (
             <div className="mx-auto flex w-[350px] flex-col gap-6">
-                <h1 className="text-center text-3xl font-bold">Update Password</h1>
+                <h1 className="text-center text-3xl font-bold">{t('auth.password.change.requiredTitle')}</h1>
                 <p className="text-muted-foreground text-center text-sm">
-                    You need to change your password before continuing.
+                    {t('auth.password.change.requiredDescription')}
                 </p>
                 <PasswordChangeForm
                     layout="vertical"
@@ -190,7 +200,7 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
                                         variant="secondary"
                                     >
                                         {provider.icon}
-                                        {provider.name}
+                                        {t(provider.nameKey)}
                                     </Button>
                                 ))}
                         </div>
@@ -200,7 +210,7 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
                                 <div className="w-full border-t border-gray-300" />
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="bg-background px-2">or</span>
+                                <span className="bg-background px-2">{t('auth.login.or')}</span>
                             </div>
                         </div>
                     </>
@@ -212,12 +222,12 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
                         name="mail"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Login</FormLabel>
+                                <FormLabel>{t('auth.login.label')}</FormLabel>
                                 <FormControl>
                                     <Input
                                         {...field}
                                         autoFocus
-                                        placeholder="Enter your email"
+                                        placeholder={t('auth.login.placeholder')}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -230,11 +240,11 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
                         name="password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Password</FormLabel>
+                                <FormLabel>{t('auth.login.passwordLabel')}</FormLabel>
                                 <FormControl>
                                     <InputPassword
                                         {...field}
-                                        placeholder="Enter your password"
+                                        placeholder={t('auth.login.passwordPlaceholder')}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -243,7 +253,7 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
                     />
 
                     <FormSubmitButton className="w-full">
-                        <span>Sign in</span>
+                        <span>{t('auth.login.submit')}</span>
                     </FormSubmitButton>
 
                     {error && <FormMessage>{error}</FormMessage>}

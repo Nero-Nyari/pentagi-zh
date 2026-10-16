@@ -10,6 +10,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Form, FormControl, FormField } from '@/components/ui/form';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useTranslation } from '@/hooks/use-translation';
 import { useFlow } from '@/providers/flow-provider';
 
 import FlowScreenshot from './flow-screenshot';
@@ -19,6 +20,7 @@ const searchFormSchema = z.object({
 });
 
 function FlowScreenshots() {
+    const { t } = useTranslation();
     const { flowData, flowId } = useFlow();
 
     const screenshots = useMemo(() => flowData?.screenshots ?? [], [flowData?.screenshots]);
@@ -93,13 +95,13 @@ function FlowScreenshots() {
                                         <InputGroupInput
                                             {...field}
                                             autoComplete="off"
-                                            placeholder="Search screenshots..."
+                                            placeholder={t('flows.screenshots.search')}
                                             type="text"
                                         />
                                         {field.value && (
                                             <InputGroupAddon align="inline-end">
                                                 <InputGroupButton
-                                                    aria-label="Clear screenshot search"
+                                                    aria-label={t('flows.screenshots.clearSearch')}
                                                     onClick={() => {
                                                         form.reset({ search: '' });
                                                         setDebouncedSearchValue('');
@@ -136,7 +138,7 @@ function FlowScreenshots() {
 
                     {!isScrolledToBottom && (
                         <Button
-                            aria-label="Scroll to latest screenshot"
+                            aria-label={t('flows.screenshots.scrollToLatest')}
                             className="absolute right-4 bottom-4 z-10 shadow-md hover:shadow-lg"
                             onClick={() => scrollToEnd()}
                             size="icon-sm"
@@ -156,8 +158,8 @@ function FlowScreenshots() {
                         <EmptyMedia variant="icon">
                             <Camera />
                         </EmptyMedia>
-                        <EmptyTitle>No screenshots available</EmptyTitle>
-                        <EmptyDescription>Screenshots will appear here once the agent captures them</EmptyDescription>
+                        <EmptyTitle>{t('flows.screenshots.empty.title')}</EmptyTitle>
+                        <EmptyDescription>{t('flows.screenshots.empty.description')}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             )}

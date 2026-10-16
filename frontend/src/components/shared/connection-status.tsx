@@ -1,7 +1,10 @@
 import { WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { useTranslation } from '@/hooks/use-translation';
+
 export function ConnectionStatus() {
+    const { t } = useTranslation();
     const [isDisconnected, setIsDisconnected] = useState(false);
 
     useEffect(() => {
@@ -28,7 +31,7 @@ export function ConnectionStatus() {
             role="status"
         >
             <WifiOff className="size-3.5" />
-            Not receiving updates — reconnecting
+            {t('shared.connectionStatus.disconnected')}
         </div>
     );
 }

@@ -11,7 +11,7 @@ import type { FileManagerAction, FileManagerBulkAction, FileNode } from './file-
  */
 export const downloadAction = (
     getDownloadHref: (file: FileNode) => string,
-    options: { directoryArchiveExtension?: string } = {},
+    options: { directoryArchiveExtension?: string; label?: string } = {},
 ): FileManagerAction => {
     const archiveExtension = options.directoryArchiveExtension ?? 'zip';
 
@@ -21,16 +21,19 @@ export const downloadAction = (
         getHrefDownloadAttr: (file) => (file.isDir ? `${file.name}.${archiveExtension}` : file.name),
         icon: Download,
         id: '__builtin_download',
-        label: 'Download',
+        label: options.label ?? 'Download',
         onSelect: () => {},
     };
 };
 
-export const copyPathAction = (onCopyPath: (file: FileNode) => void): FileManagerAction => ({
+export const copyPathAction = (
+    onCopyPath: (file: FileNode) => void,
+    options: { label?: string } = {},
+): FileManagerAction => ({
     appliesToDirs: true,
     icon: ClipboardCopy,
     id: '__builtin_copy_path',
-    label: 'Copy path',
+    label: options.label ?? 'Copy path',
     onSelect: onCopyPath,
 });
 
@@ -38,11 +41,14 @@ export const copyPathAction = (onCopyPath: (file: FileNode) => void): FileManage
  * Built-in delete action. Always rendered with a leading separator and destructive variant.
  * Caller is responsible for showing a confirmation dialog inside `onSelect`.
  */
-export const deleteAction = (onDelete: (file: FileNode) => void): FileManagerAction => ({
+export const deleteAction = (
+    onDelete: (file: FileNode) => void,
+    options: { label?: string } = {},
+): FileManagerAction => ({
     appliesToDirs: true,
     icon: Trash2,
     id: '__builtin_delete',
-    label: 'Delete',
+    label: options.label ?? 'Delete',
     onSelect: onDelete,
     separatorBefore: true,
     variant: 'destructive',

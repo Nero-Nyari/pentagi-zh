@@ -5,6 +5,7 @@ import { ResponsiveContainer } from 'recharts';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslation } from '@/hooks/use-translation';
 
 import { DashboardError } from './dashboard-error';
 
@@ -27,6 +28,8 @@ export function ChartCard({
     loading?: boolean;
     title: ReactNode;
 }) {
+    const { t } = useTranslation();
+
     return (
         <Card className={className}>
             <CardHeader>
@@ -55,7 +58,7 @@ export function ChartCard({
                         style={{ height }}
                     >
                         <BarChart2 className="text-muted-foreground/30 size-10" />
-                        <p className="text-muted-foreground text-sm">No data for this period</p>
+                        <p className="text-muted-foreground text-sm">{t('dashboard.chart.empty')}</p>
                     </div>
                 ) : (
                     <ResponsiveContainer

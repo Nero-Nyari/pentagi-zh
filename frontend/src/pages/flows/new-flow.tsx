@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { AppHeader, AppHeaderContent, AppHeaderTitle } from '@/components/layouts/app/app-header';
+import { AppHeader, AppHeaderActions, AppHeaderContent, AppHeaderTitle } from '@/components/layouts/app/app-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FlowForm, type FlowFormValues } from '@/features/flows/flow-form';
+import { useTranslation } from '@/hooks/use-translation';
 import { routes } from '@/lib/routes';
 import { useFlows } from '@/providers/flows-provider';
 import { useProviders } from '@/providers/providers-provider';
 import { useSystemSettings } from '@/providers/system-settings-provider';
 
 function NewFlow() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
 
     const { selectedProvider } = useProviders();
@@ -50,15 +52,16 @@ function NewFlow() {
         <>
             <AppHeader>
                 <AppHeaderContent>
-                    <AppHeaderTitle>New flow</AppHeaderTitle>
+                    <AppHeaderTitle>{t('flows.new.title')}</AppHeaderTitle>
                 </AppHeaderContent>
+                <AppHeaderActions />
             </AppHeader>
             <div className="flex min-h-[calc(100dvh-3rem)] items-center justify-center p-4">
                 <Card className="w-full max-w-2xl">
                     <CardContent className="flex flex-col gap-4 pt-6">
                         <div className="flex flex-col gap-2 text-center">
-                            <h2 className="text-2xl font-semibold">Create a new flow</h2>
-                            <p className="text-muted-foreground">Describe what you would like PentAGI to test</p>
+                            <h2 className="text-2xl font-semibold">{t('flows.new.heading')}</h2>
+                            <p className="text-muted-foreground">{t('flows.new.description')}</p>
                         </div>
                         <Tabs
                             onValueChange={(value) => setFlowType(value as 'assistant' | 'automation')}
@@ -69,13 +72,13 @@ function NewFlow() {
                                     disabled={isLoading}
                                     value="automation"
                                 >
-                                    Automation
+                                    {t('flows.tab.automation')}
                                 </TabsTrigger>
                                 <TabsTrigger
                                     disabled={isLoading}
                                     value="assistant"
                                 >
-                                    Assistant
+                                    {t('flows.tab.assistant')}
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>
@@ -89,9 +92,9 @@ function NewFlow() {
                             placeholder={
                                 !isLoading
                                     ? flowType === 'automation'
-                                        ? 'Describe what you would like PentAGI to test...'
-                                        : 'What would you like me to help you with?'
-                                    : 'Creating a new flow...'
+                                        ? t('flows.new.placeholder.automation')
+                                        : t('flows.new.placeholder.assistant')
+                                    : t('flows.new.placeholder.creating')
                             }
                             type={flowType}
                         />

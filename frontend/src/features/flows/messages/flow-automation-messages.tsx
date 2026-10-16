@@ -11,6 +11,7 @@ import { Form, FormControl, FormField } from '@/components/ui/form';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { StatusType } from '@/graphql/types';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 import { useFlow } from '@/providers/flow-provider';
 
@@ -33,6 +34,7 @@ const searchFormSchema = z.object({
 });
 
 function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
+    const { t } = useTranslation();
     const { flowData, flowId, flowStatus, stopAutomation, submitAutomationMessage } = useFlow();
 
     const logs = useMemo(() => flowData?.messageLogs ?? [], [flowData?.messageLogs]);
@@ -130,32 +132,32 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
 
     const placeholder = useMemo(() => {
         if (!flowId) {
-            return 'Select a flow...';
+            return t('flows.messages.placeholder.selectFlow');
         }
 
         switch (flowStatus) {
             case StatusType.Created: {
-                return 'The flow is starting...';
+                return t('flows.messages.placeholder.flowStarting');
             }
 
             case StatusType.Failed:
             case StatusType.Finished: {
-                return 'This flow has ended. Create a new one to continue.';
+                return t('flows.messages.placeholder.flowEnded');
             }
 
             case StatusType.Running: {
-                return 'PentAGI is working... Click Stop to interrupt';
+                return t('flows.messages.placeholder.working');
             }
 
             case StatusType.Waiting: {
-                return 'Provide additional context or instructions...';
+                return t('flows.messages.placeholder.context');
             }
 
             default: {
-                return 'Type your message...';
+                return t('flows.messages.placeholder.default');
             }
         }
-    }, [flowId, flowStatus]);
+    }, [flowId, flowStatus, t]);
 
     const handleSubmitMessage = async (values: FlowFormValues) => {
         setIsSubmitting(true);
@@ -210,13 +212,13 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
                                         <InputGroupInput
                                             {...field}
                                             autoComplete="off"
-                                            placeholder="Search messages..."
+                                            placeholder={t('flows.messages.search')}
                                             type="text"
                                         />
                                         {field.value && (
                                             <InputGroupAddon align="inline-end">
                                                 <InputGroupButton
-                                                    aria-label="Clear message search"
+                                                    aria-label={t('flows.messages.clearSearch')}
                                                     onClick={() => {
                                                         form.reset({ search: '' });
                                                         setDebouncedSearchValue('');
@@ -266,7 +268,7 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
 
                     {!isScrolledToBottom && (
                         <Button
-                            aria-label="Scroll to latest message"
+                            aria-label={t('flows.messages.scrollToLatest')}
                             className="absolute right-4 bottom-4 z-10 shadow-md hover:shadow-lg"
                             onClick={() => scrollToEnd()}
                             size="icon-sm"
@@ -286,8 +288,8 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
                         <EmptyMedia variant="icon">
                             <ListFilter />
                         </EmptyMedia>
-                        <EmptyTitle>No messages found</EmptyTitle>
-                        <EmptyDescription>Try adjusting your search or filter parameters</EmptyDescription>
+                        <EmptyTitle>{t('flows.messages.notFound.title')}</EmptyTitle>
+                        <EmptyDescription>{t('flows.common.tryAdjust')}</EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
                         <Button
@@ -295,7 +297,7 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
                             variant="outline"
                         >
                             <X />
-                            Reset filters
+                            {t('flows.common.resetFilters')}
                         </Button>
                     </EmptyContent>
                 </Empty>
@@ -305,11 +307,8 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
                         <EmptyMedia variant="icon">
                             <Inbox />
                         </EmptyMedia>
-                        <EmptyTitle>No active tasks</EmptyTitle>
-                        <EmptyDescription>
-                            Starting a new task may take some time as the PentAGI agent downloads the required Docker
-                            image
-                        </EmptyDescription>
+                        <EmptyTitle>{t('flows.messages.automation.empty.title')}</EmptyTitle>
+                        <EmptyDescription>{t('flows.messages.automation.empty.description')}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             )}

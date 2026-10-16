@@ -1,7 +1,7 @@
 import { useMutation } from '@apollo/client/react';
 import { Save } from 'lucide-react';
-import { type ComponentProps, useCallback, useState } from 'react';
-import { type Control, type FieldPath, type SubmitHandler, useWatch } from 'react-hook-form';
+import { type ComponentProps, useCallback, useMemo, useState } from 'react';
+import { type Control, type SubmitHandler, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -11,6 +11,7 @@ import type {
     KnowledgeDocumentFragmentFragment,
     UpdateKnowledgeDocumentInput,
 } from '@/graphql/types';
+import type { Translator } from '@/lib/i18n/types';
 
 import { AppHeaderAction } from '@/components/layouts/app/app-header';
 import { type EditorViewMode } from '@/components/shared/markdown-editor';
@@ -19,6 +20,9 @@ import { Form } from '@/components/ui/form';
 import { AnonymizeTextDocument, KnowledgeAnswerType, KnowledgeDocType, KnowledgeGuideType } from '@/graphql/types';
 import { useAppForm } from '@/hooks/use-app-form';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { useTranslation } from '@/hooks/use-translation';
+import { dictionaries } from '@/lib/i18n/dictionaries';
+import { createTranslator } from '@/lib/i18n/translator';
 import { Log } from '@/lib/log';
 import { useUser } from '@/providers/user-provider';
 
@@ -32,6 +36,10 @@ export const KNOWLEDGE_LIMITS = {
     question: 2048,
 } as const;
 
+// 校验消息需要跟随语言切换，因此 schema 由 t 工厂生成；模块级默认值用英文，
+// 供测试与不支持 i18n 的调用方直接使用。
+const englishTranslator: Translator = createTranslator(dictionaries.en);
+
 // Optional text fields are trimmed and length-checked but NOT collapsed to
 // `undefined` — the partial-update logic in `formValuesToUpdateInput` needs
 // to distinguish "user cleared a previously-set value" (send `""` so the
@@ -40,61 +48,82 @@ export const KNOWLEDGE_LIMITS = {
 // erase that signal and break the "clear an existing description" use case.
 const withinLimit = (max: number) => (value: string) => [...value].length <= max;
 
-const optionalTrimmed = (max: number, label: string) =>
+const optionalTrimmed = (t: Translator, max: number, fieldLabel: string) =>
     z
         .string()
         .trim()
-        .refine(withinLimit(max), { message: `${label} must be ${max} characters or fewer` })
+        .refine(withinLimit(max), {
+            message: t('knowledges.validation.maxLength', { field: fieldLabel, max }),
+        })
         .optional();
 
-export const formSchema = z
-    .object({
-        answerType: z.nativeEnum(KnowledgeAnswerType).optional(),
-        codeLang: optionalTrimmed(KNOWLEDGE_LIMITS.codeLang, 'Code language'),
-        // The body is a document: it is sent as it was written, the line break it ends with included, and the
-        // limit counts all of it, as the endpoint does.
-        content: z
-            .string()
-            .refine((value) => value.trim() !== '', { message: 'Content is required' })
-            .refine(withinLimit(KNOWLEDGE_LIMITS.content), {
-                message: `Content must be ${KNOWLEDGE_LIMITS.content} characters or fewer`,
-            }),
-        description: optionalTrimmed(KNOWLEDGE_LIMITS.description, 'Description'),
-        docType: z.nativeEnum(KnowledgeDocType),
-        guideType: z.nativeEnum(KnowledgeGuideType).optional(),
-        question: z
-            .string()
-            .trim()
-            .min(1, { message: 'Question is required' })
-            .refine(withinLimit(KNOWLEDGE_LIMITS.question), {
-                message: `Question must be ${KNOWLEDGE_LIMITS.question} characters or fewer`,
-            }),
-    })
-    .superRefine((value, ctx) => {
-        const requiredByDocType: Partial<Record<KnowledgeDocType, { field: FieldPath<FormValues>; message: string }>> =
-            {
-                [KnowledgeDocType.Answer]: { field: 'answerType', message: 'Answer type is required' },
-                [KnowledgeDocType.Code]: { field: 'codeLang', message: 'Code language is required' },
-                [KnowledgeDocType.Guide]: { field: 'guideType', message: 'Guide type is required' },
+export const createFormSchema = (t: Translator) =>
+    z
+        .object({
+            answerType: z.nativeEnum(KnowledgeAnswerType).optional(),
+            codeLang: optionalTrimmed(t, KNOWLEDGE_LIMITS.codeLang, t('knowledges.validation.field.codeLang')),
+            // The body is a document: it is sent as it was written, the line break it ends with included, and the
+            // limit counts all of it, as the endpoint does.
+            content: z
+                .string()
+                .refine((value) => value.trim() !== '', { message: t('knowledges.validation.contentRequired') })
+                .refine(withinLimit(KNOWLEDGE_LIMITS.content), {
+                    message: t('knowledges.validation.maxLength', {
+                        field: t('knowledges.validation.field.content'),
+                        max: KNOWLEDGE_LIMITS.content,
+                    }),
+                }),
+            description: optionalTrimmed(t, KNOWLEDGE_LIMITS.description, t('knowledges.validation.field.description')),
+            docType: z.nativeEnum(KnowledgeDocType),
+            guideType: z.nativeEnum(KnowledgeGuideType).optional(),
+            question: z
+                .string()
+                .trim()
+                .min(1, { message: t('knowledges.validation.questionRequired') })
+                .refine(withinLimit(KNOWLEDGE_LIMITS.question), {
+                    message: t('knowledges.validation.maxLength', {
+                        field: t('knowledges.validation.field.question'),
+                        max: KNOWLEDGE_LIMITS.question,
+                    }),
+                }),
+        })
+        .superRefine((value, ctx) => {
+            const requiredByDocType: Partial<
+                Record<KnowledgeDocType, { field: 'answerType' | 'codeLang' | 'guideType'; message: string }>
+            > = {
+                [KnowledgeDocType.Answer]: {
+                    field: 'answerType',
+                    message: t('knowledges.validation.answerTypeRequired'),
+                },
+                [KnowledgeDocType.Code]: {
+                    field: 'codeLang',
+                    message: t('knowledges.validation.codeLangRequired'),
+                },
+                [KnowledgeDocType.Guide]: {
+                    field: 'guideType',
+                    message: t('knowledges.validation.guideTypeRequired'),
+                },
             };
 
-        const rule = requiredByDocType[value.docType];
+            const rule = requiredByDocType[value.docType];
 
-        if (!rule) {
-            return;
-        }
+            if (!rule) {
+                return;
+            }
 
-        const fieldValue = value[rule.field];
-        const isMissing = fieldValue === undefined || fieldValue === null || fieldValue === '';
+            const fieldValue = value[rule.field];
+            const isMissing = fieldValue === undefined || fieldValue === null || fieldValue === '';
 
-        if (isMissing) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: rule.message,
-                path: [rule.field],
-            });
-        }
-    });
+            if (isMissing) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: rule.message,
+                    path: [rule.field],
+                });
+            }
+        });
+
+export const formSchema = createFormSchema(englishTranslator);
 
 export type FormValues = z.infer<typeof formSchema>;
 
@@ -188,6 +217,7 @@ interface KnowledgeFormProps {
 }
 
 export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: KnowledgeFormProps) {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { isDesktop } = useBreakpoint();
     const [isSaving, setIsSaving] = useState(false);
@@ -196,6 +226,9 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
     const [anonymizeMutation] = useMutation(AnonymizeTextDocument);
     const { authInfo } = useUser();
     const canAnonymize = authInfo?.privileges?.includes('anonymize.call') ?? false;
+
+    // 校验消息随语言切换，schema 由 t 重新生成，与模块级英文默认值互不影响。
+    const localizedSchema = useMemo(() => createFormSchema(t), [t]);
 
     const form = useAppForm<FormValues>({
         defaultValues: initialValues,
@@ -207,7 +240,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
             // would silently wipe their in-flight changes.
             keepDirtyValues: true,
         },
-        schema: formSchema,
+        schema: localizedSchema,
         // `values` reactively syncs the form with `initialValues`. The page
         // recomputes `initialValues` from `knowledge` whenever the cache
         // refreshes (rename, refetch, etc.), and RHF reapplies the new
@@ -262,7 +295,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
         // so we run it through the schema explicitly. This way the dialog path
         // produces the same parsed values as the form-button path
         // (which gets parsed values directly from `handleSubmit`'s callback).
-        const parsed = formSchema.safeParse(form.getValues());
+        const parsed = localizedSchema.safeParse(form.getValues());
 
         if (!parsed.success) {
             return false;
@@ -280,7 +313,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
         } finally {
             setIsSaving(false);
         }
-    }, [form, isSaving, isValid, performSave]);
+    }, [form, isSaving, isValid, localizedSchema, performSave]);
 
     const guard = useUnsavedChangesGuard({
         isDirty,
@@ -323,7 +356,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
         <AppHeaderAction
             disabled={!canSubmit}
             icon={<Save aria-hidden="true" />}
-            label={isNew ? 'Create' : 'Save'}
+            label={isNew ? t('knowledges.form.create') : t('knowledges.form.save')}
             loading={isSaving}
             type="submit"
         />
@@ -343,26 +376,26 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
             const anonymizedContent = data?.anonymizeText;
 
             if (anonymizedContent == null) {
-                toast.error('Anonymizer returned no result');
+                toast.error(t('knowledges.anonymize.noResult'));
 
                 return;
             }
 
             if (anonymizedContent === currentContent) {
-                toast.info('No sensitive data detected');
+                toast.info(t('knowledges.anonymize.none'));
 
                 return;
             }
 
             form.setValue('content', anonymizedContent, { shouldDirty: true });
-            toast.success('Content anonymized');
+            toast.success(t('knowledges.anonymize.success'));
         } catch (error) {
             Log.error('Failed to anonymize content', error);
-            toast.error(error instanceof Error ? error.message : 'Failed to anonymize content');
+            toast.error(error instanceof Error ? error.message : t('knowledges.anonymize.failed'));
         } finally {
             setIsAnonymizing(false);
         }
-    }, [anonymizeMutation, form]);
+    }, [anonymizeMutation, form, t]);
 
     return (
         <>

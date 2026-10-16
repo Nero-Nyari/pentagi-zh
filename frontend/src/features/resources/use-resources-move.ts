@@ -3,22 +3,29 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 import type { OverwriteOutcome } from '@/components/shared/overwrite';
+import type { Translator } from '@/lib/i18n/types';
 
-import { pluralizeItems } from '@/components/shared/file-manager';
+import { useTranslation } from '@/hooks/use-translation';
 import { api, getApiErrorMessage, getApiErrorStatusCode } from '@/lib/axios';
 
 import { RESOURCES_MOVE_API_PATH } from './resources-constants';
 
-export const resourcesMoveFormSchema = z.object({
-    destination: z
-        .string()
-        .trim()
-        .min(1, { message: 'Destination cannot be empty' })
-        .refine((value) => !value.startsWith('/'), { message: 'Destination must be a relative path' })
-        .refine((value) => !value.split('/').includes('..'), { message: 'Destination must not contain ".."' }),
-});
+// 校验消息随语言切换，因此 schema 由 t 工厂生成；调用方在组件内 useMemo 生成本地化实例。
+export const createResourcesMoveFormSchema = (t: Translator) =>
+    z.object({
+        destination: z
+            .string()
+            .trim()
+            .min(1, { message: t('resources.destinationForm.validation.required') })
+            .refine((value) => !value.startsWith('/'), {
+                message: t('resources.destinationForm.validation.relative'),
+            })
+            .refine((value) => !value.split('/').includes('..'), {
+                message: t('resources.destinationForm.validation.noParent'),
+            }),
+    });
 
-export type ResourcesMoveFormValues = z.infer<typeof resourcesMoveFormSchema>;
+export type ResourcesMoveFormValues = z.infer<ReturnType<typeof createResourcesMoveFormSchema>>;
 
 interface MoveRequestBody {
     destination: string;
@@ -45,6 +52,7 @@ interface UseResourcesMoveResult {
 
 /** Wraps `PUT /resources/move` for rename / move / batch-move operations. */
 export function useResourcesMove(): UseResourcesMoveResult {
+    const { t } = useTranslation();
     const [isMoving, setIsMoving] = useState(false);
 
     const move = useCallback(
@@ -64,10 +72,13 @@ export function useResourcesMove(): UseResourcesMoveResult {
 
                 const description =
                     sources.length === 1
-                        ? `Moved to /${destination}`
-                        : `Moved ${sources.length} ${pluralizeItems(sources.length)} into /${destination}`;
+                        ? t('resources.moveDialog.success.single', { destination })
+                        : t('resources.moveDialog.success.multi', {
+                              count: sources.length,
+                              destination,
+                          });
 
-                toast.success('Resource moved', { description });
+                toast.success(t('resources.moveDialog.success.title'), { description });
 
                 return { kind: 'ok' };
             } catch (error) {
@@ -79,16 +90,16 @@ export function useResourcesMove(): UseResourcesMoveResult {
                     return { kind: 'conflict' };
                 }
 
-                const description = getApiErrorMessage(error, 'Failed to move resource');
+                const description = getApiErrorMessage(error, t('resources.moveDialog.error.fallback'));
 
-                toast.error('Move failed', { description });
+                toast.error(t('resources.moveDialog.error.title'), { description });
 
                 return { kind: 'error' };
             } finally {
                 setIsMoving(false);
             }
         },
-        [],
+        [t],
     );
 
     return {

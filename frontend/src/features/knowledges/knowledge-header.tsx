@@ -28,7 +28,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { KnowledgeDocType } from '@/graphql/types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { useTranslation } from '@/hooks/use-translation';
+import { type TranslationKey } from '@/lib/i18n/types';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { type Knowledge, useKnowledges } from '@/providers/knowledges-provider';
@@ -55,17 +58,12 @@ interface KnowledgeHeaderProps {
     viewMode?: EditorViewMode;
 }
 
-const renderKnowledgeItem = (item: Knowledge, isCurrent: boolean): ReactNode => (
-    <>
-        <Badge
-            className="shrink-0 text-[10px] whitespace-nowrap"
-            variant="outline"
-        >
-            {item.docType}
-        </Badge>
-        <span className={cn('min-w-0 flex-1 truncate', isCurrent && 'font-medium')}>{item.question}</span>
-    </>
-);
+// 文档类型徽标的本地化键映射（枚举值本身是后端契约，只用于显示）。
+const docTypeLabelKey: Record<KnowledgeDocType, TranslationKey> = {
+    [KnowledgeDocType.Answer]: 'knowledges.docType.answer',
+    [KnowledgeDocType.Code]: 'knowledges.docType.code',
+    [KnowledgeDocType.Guide]: 'knowledges.docType.guide',
+};
 
 export function KnowledgeHeader({
     canAnonymize = false,
@@ -79,6 +77,7 @@ export function KnowledgeHeader({
     saveButton,
     viewMode = 'rich',
 }: KnowledgeHeaderProps) {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { knowledgeId } = useParams();
     const { isMobile } = useBreakpoint();
@@ -86,6 +85,18 @@ export function KnowledgeHeader({
     const [isRenaming, setIsRenaming] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    const renderKnowledgeItem = (item: Knowledge, isCurrent: boolean): ReactNode => (
+        <>
+            <Badge
+                className="shrink-0 text-[10px] whitespace-nowrap"
+                variant="outline"
+            >
+                {t(docTypeLabelKey[item.docType])}
+            </Badge>
+            <span className={cn('min-w-0 flex-1 truncate', isCurrent && 'font-medium')}>{item.question}</span>
+        </>
+    );
 
     const knowledgeNav = useKnowledgeDetailNavigation(isNew ? null : (knowledgeId ?? null));
 
@@ -128,14 +139,14 @@ export function KnowledgeHeader({
             // The sibling edit form picks up the new `question` via
             // `useForm({ values })` once the cache updates — no manual sync here.
             await renameKnowledge(knowledge.id, newQuestion);
-            toast.success('Knowledge renamed successfully');
+            toast.success(t('knowledges.rename.success'));
             handleRenameCancel();
         } catch {
             // Error already handled in provider with toast
         } finally {
             setIsRenaming(false);
         }
-    }, [editingInputRef, handleRenameCancel, knowledge, renameKnowledge]);
+    }, [editingInputRef, handleRenameCancel, knowledge, renameKnowledge, t]);
 
     const handleDelete = useCallback(async () => {
         if (!knowledge) {
@@ -171,7 +182,7 @@ export function KnowledgeHeader({
                                         inputRef={editingInputRef}
                                         onCancel={handleRenameCancel}
                                         onSave={handleRenameSave}
-                                        placeholder="Knowledge question"
+                                        placeholder={t('knowledges.header.renamePlaceholder')}
                                     />
                                 ) : hasKnowledge ? (
                                     <Tooltip>
@@ -180,14 +191,16 @@ export function KnowledgeHeader({
                                                 className="max-w-64 min-w-0 cursor-text truncate select-none"
                                                 onDoubleClick={handleRenameStart}
                                             >
-                                                {knowledgeName ?? 'Knowledge'}
+                                                {knowledgeName ?? t('knowledges.header.fallbackTitle')}
                                             </BreadcrumbPage>
                                         </TooltipTrigger>
-                                        <TooltipContent>Double-click to rename</TooltipContent>
+                                        <TooltipContent>{t('knowledges.header.renameTooltip')}</TooltipContent>
                                     </Tooltip>
                                 ) : (
                                     <BreadcrumbPage className="min-w-0 truncate">
-                                        {isNew ? 'New knowledge' : (knowledgeName ?? 'Knowledge')}
+                                        {isNew
+                                            ? t('knowledges.header.newTitle')
+                                            : (knowledgeName ?? t('knowledges.header.fallbackTitle'))}
                                     </BreadcrumbPage>
                                 )}
                             </BreadcrumbItem>
@@ -200,14 +213,14 @@ export function KnowledgeHeader({
                             controller={knowledgeNav}
                             renderItem={renderKnowledgeItem}
                             sheetIcon={<LibraryBig className="size-4" />}
-                            sheetTitle="Knowledges"
+                            sheetTitle={t('knowledges.title')}
                         />
                     )}
                     {canAnonymize && !isMobile && (
                         <AppHeaderAction
                             disabled={isAnonymizeDisabled}
                             icon={isAnonymizing ? <Spinner variant="circle" /> : <HatGlasses aria-hidden="true" />}
-                            label="Anonymize"
+                            label={t('knowledges.header.anonymize')}
                             onClick={onAnonymize}
                             type="button"
                             variant="outline"
@@ -217,14 +230,14 @@ export function KnowledgeHeader({
                         <AppHeaderAction
                             disabled
                             icon={<Save />}
-                            label={isNew ? 'Create' : 'Save'}
+                            label={isNew ? t('knowledges.form.create') : t('knowledges.form.save')}
                             type="button"
                         />
                     )}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
-                                aria-label="Knowledge actions"
+                                aria-label={t('knowledges.header.menuAria')}
                                 className="size-8 p-0"
                                 type="button"
                                 variant="ghost"
@@ -245,12 +258,12 @@ export function KnowledgeHeader({
                                     {isAnonymizing ? (
                                         <>
                                             <Spinner variant="circle" />
-                                            Anonymizing...
+                                            {t('knowledges.header.anonymizing')}
                                         </>
                                     ) : (
                                         <>
                                             <HatGlasses />
-                                            Anonymize
+                                            {t('knowledges.header.anonymize')}
                                         </>
                                     )}
                                 </DropdownMenuItem>
@@ -263,11 +276,11 @@ export function KnowledgeHeader({
                                         onSelect={(event) => event.preventDefault()}
                                     >
                                         <LibraryBig />
-                                        Knowledges
+                                        {t('knowledges.title')}
                                         <div className="-my-1.5 -mr-2 ml-auto flex items-center">
                                             <DetailNavigationButtons<Knowledge>
                                                 controller={knowledgeNav}
-                                                sheetTitle="Knowledges"
+                                                sheetTitle={t('knowledges.title')}
                                                 size="sm"
                                             />
                                         </div>
@@ -282,7 +295,7 @@ export function KnowledgeHeader({
                                         onClick={handleRenameStart}
                                     >
                                         <Pencil className="size-3" />
-                                        Rename
+                                        {t('knowledges.header.rename')}
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                 </>
@@ -294,12 +307,12 @@ export function KnowledgeHeader({
                                         className="cursor-default gap-4 hover:bg-transparent focus:bg-transparent"
                                         onSelect={(event) => event.preventDefault()}
                                     >
-                                        View
+                                        {t('knowledges.header.view')}
                                         <EditorViewModeToggle
                                             className="-my-1.5 -mr-2 ml-auto"
                                             mode={viewMode}
                                             onModeChange={onModeChange}
-                                            rawTooltip="Edit the raw markdown"
+                                            rawTooltip={t('knowledges.header.rawTooltip')}
                                         />
                                     </DropdownMenuItem>
                                 </>
@@ -314,12 +327,12 @@ export function KnowledgeHeader({
                                         {isDeleting ? (
                                             <>
                                                 <Spinner variant="circle" />
-                                                Deleting...
+                                                {t('knowledges.header.deleting')}
                                             </>
                                         ) : (
                                             <>
                                                 <Trash />
-                                                Delete
+                                                {t('knowledges.header.delete')}
                                             </>
                                         )}
                                     </DropdownMenuItem>
@@ -334,17 +347,17 @@ export function KnowledgeHeader({
                     controller={knowledgeNav}
                     renderItem={renderKnowledgeItem}
                     sheetIcon={<LibraryBig className="size-4" />}
-                    sheetTitle="Knowledges"
+                    sheetTitle={t('knowledges.title')}
                 />
             )}
             <ConfirmationDialog
-                cancelText="Cancel"
-                confirmText="Delete"
+                cancelText={t('shared.confirmDialog.cancel')}
+                confirmText={t('knowledges.header.delete')}
                 handleConfirm={handleDelete}
                 handleOpenChange={setIsDeleteDialogOpen}
                 isOpen={isDeleteDialogOpen}
                 itemName={knowledgeName ?? undefined}
-                itemType="knowledge document"
+                itemType={t('knowledges.entity.singular')}
             />
         </>
     );

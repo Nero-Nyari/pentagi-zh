@@ -16,6 +16,13 @@
 
 </div>
 
+> [!IMPORTANT]
+> **非官方简体中文汉化版 / Unofficial Chinese Localization**
+>
+> 本仓库是 [PentAGI](https://github.com/vxcontrol/pentagi) 的**非官方**简体中文汉化分支，由个人维护，与原作者 VXControl 无隶属关系。除前端界面的汉化（新增 `en`/`zh` 双语字典、语言自动检测与切换）外，其余代码与上游保持一致，并可定期从上游合并更新。若需官方版本，请访问 [vxcontrol/pentagi](https://github.com/vxcontrol/pentagi)。
+>
+> 所有版权与许可以上游为准，请完整阅读并遵守 [LICENSE](LICENSE)、[EULA.md](EULA.md) 与 [NOTICE](NOTICE)；本项目仅可用于你拥有或已获得明确书面授权的系统。
+
 ## Table of Contents
 
 - [Overview](#overview)

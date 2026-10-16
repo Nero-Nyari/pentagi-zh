@@ -3,12 +3,15 @@ import type { LucideIcon } from 'lucide-react';
 
 import { AlignCenter, AlignLeft, AlignRight } from 'lucide-react';
 
+import type { TranslationKey } from '@/lib/i18n/types';
+
 export type ColumnAlign = 'center' | 'left' | 'right';
 
-export const ALIGN_OPTIONS: { icon: LucideIcon; label: string; value: ColumnAlign }[] = [
-    { icon: AlignLeft, label: 'Left', value: 'left' },
-    { icon: AlignCenter, label: 'Center', value: 'center' },
-    { icon: AlignRight, label: 'Right', value: 'right' },
+// 存 key 而非文案：选项表在模块作用域构建，语言切换时需要按渲染重新解析。
+export const ALIGN_OPTIONS: { icon: LucideIcon; labelKey: TranslationKey; value: ColumnAlign }[] = [
+    { icon: AlignLeft, labelKey: 'shared.markdownEditor.alignLeft', value: 'left' },
+    { icon: AlignCenter, labelKey: 'shared.markdownEditor.alignCenter', value: 'center' },
+    { icon: AlignRight, labelKey: 'shared.markdownEditor.alignRight', value: 'right' },
 ];
 
 export function clearLineContents(editor: Editor, axis: 'column' | 'row'): void {

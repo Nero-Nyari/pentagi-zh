@@ -15,6 +15,7 @@ import {
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { toFileNode } from '@/features/resources/resources-utils';
+import { useTranslation } from '@/hooks/use-translation';
 import { useResources } from '@/providers/resources-provider';
 
 import { findAttachConflicts } from './flow-files-conflicts';
@@ -82,6 +83,7 @@ function FlowFilesAttachResourcesDialogBody({
     onClose,
     onSuccess,
 }: Omit<FlowFilesAttachResourcesDialogProps, 'isOpen'>) {
+    const { t } = useTranslation();
     const { error: resourcesError, isInitialLoading: isResourcesLoading, resources } = useResources();
     const { attach, isAttaching } = useFlowFilesAttachResources({ flowId });
 
@@ -175,8 +177,14 @@ function FlowFilesAttachResourcesDialogBody({
     const selectedCount = selectedPaths.size;
     const hasResources = resources.length > 0;
     const isAttachDisabled = selectedCount === 0;
-    const primaryLabel = selectedCount > 0 ? `Attach ${selectedCount}` : 'Attach';
-    const overwriteLabel = selectedCount > 0 ? `Attach ${selectedCount} with overwrite` : 'Attach with overwrite';
+    const primaryLabel =
+        selectedCount > 0
+            ? t('flows.files.attach.primaryWithCount', { count: selectedCount })
+            : t('flows.files.attach.primary');
+    const overwriteLabel =
+        selectedCount > 0
+            ? t('flows.files.attach.overwriteWithCount', { count: selectedCount })
+            : t('flows.files.attach.overwrite');
 
     const emptyState = (
         <Empty className="border-0">
@@ -184,8 +192,8 @@ function FlowFilesAttachResourcesDialogBody({
                 <EmptyMedia variant="icon">
                     <FolderInput />
                 </EmptyMedia>
-                <EmptyTitle>Resource library is empty</EmptyTitle>
-                <EmptyDescription>Upload resources first to attach them to a flow.</EmptyDescription>
+                <EmptyTitle>{t('flows.files.attach.empty.title')}</EmptyTitle>
+                <EmptyDescription>{t('flows.files.attach.empty.description')}</EmptyDescription>
             </EmptyHeader>
         </Empty>
     );
@@ -196,9 +204,10 @@ function FlowFilesAttachResourcesDialogBody({
                 <EmptyMedia variant="icon">
                     <Search />
                 </EmptyMedia>
-                <EmptyTitle>No matches</EmptyTitle>
+                <EmptyTitle>{t('flows.files.attach.noMatches.title')}</EmptyTitle>
                 <EmptyDescription>
-                    No resources match <code>{searchQuery.trim()}</code>.
+                    {t('flows.files.attach.noMatches.descriptionPre')} <code>{searchQuery.trim()}</code>
+                    {t('flows.files.attach.noMatches.descriptionPost')}
                 </EmptyDescription>
             </EmptyHeader>
         </Empty>
@@ -210,12 +219,12 @@ function FlowFilesAttachResourcesDialogBody({
                 <DialogHeader className="text-left">
                     <DialogTitle className="flex items-center gap-2">
                         <FolderInput className="size-4" />
-                        Attach resources
+                        {t('flows.files.attach.title')}
                     </DialogTitle>
                     <DialogDescription>
-                        Pick files and/or folders from your global library — they will be copied into{' '}
-                        <code>resources/</code> of this flow and made available at <code>/work/resources</code> inside
-                        the container.
+                        {t('flows.files.attach.description.pre')} <code>resources/</code>{' '}
+                        {t('flows.files.attach.description.mid')} <code>/work/resources</code>{' '}
+                        {t('flows.files.attach.description.post')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -228,14 +237,14 @@ function FlowFilesAttachResourcesDialogBody({
                             autoComplete="off"
                             disabled={isAttaching || isResourcesLoading}
                             onChange={(event) => setSearchQuery(event.target.value)}
-                            placeholder="Search resources..."
+                            placeholder={t('flows.files.attach.search')}
                             type="text"
                             value={searchQuery}
                         />
                         {searchQuery && (
                             <InputGroupAddon align="inline-end">
                                 <InputGroupButton
-                                    aria-label="Clear resource search"
+                                    aria-label={t('flows.files.attach.clearSearch')}
                                     onClick={() => setSearchQuery('')}
                                     type="button"
                                 >
@@ -265,9 +274,9 @@ function FlowFilesAttachResourcesDialogBody({
                 <DialogFooter className="flex-wrap gap-4 sm:items-center">
                     <span className="text-muted-foreground order-last mr-auto text-xs sm:order-first">
                         {selectedCount > 0
-                            ? `${selectedCount} selected`
+                            ? t('flows.files.attach.selected', { count: selectedCount })
                             : hasResources
-                              ? 'Select one or more items'
+                              ? t('flows.files.attach.selectPrompt')
                               : ''}
                     </span>
                     <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:justify-end">
@@ -277,7 +286,7 @@ function FlowFilesAttachResourcesDialogBody({
                             type="button"
                             variant="outline"
                         >
-                            Cancel
+                            {t('flows.common.cancel')}
                         </Button>
                         <OverwriteButtons
                             isDisabled={isAttachDisabled}

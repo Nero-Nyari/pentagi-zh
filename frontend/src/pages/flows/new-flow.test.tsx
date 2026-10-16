@@ -8,7 +8,7 @@ const { createFlow } = vi.hoisted(() => ({ createFlow: vi.fn() }));
 vi.mock('@/components/layouts/app/app-header', () => {
     const Pass = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
 
-    return { AppHeader: Pass, AppHeaderContent: Pass, AppHeaderTitle: Pass };
+    return { AppHeader: Pass, AppHeaderActions: Pass, AppHeaderContent: Pass, AppHeaderTitle: Pass };
 });
 
 vi.mock('@/providers/flows-provider', () => ({

@@ -7,7 +7,9 @@ import { toast } from 'sonner';
 import type { AuthInfo } from '@/models/info';
 import type { User } from '@/models/user';
 
+import { useTranslation } from '@/hooks/use-translation';
 import { api, getApiErrorCode } from '@/lib/axios';
+import { dictionaries } from '@/lib/i18n/dictionaries';
 import { routes } from '@/lib/routes';
 import { getReturnUrlParam } from '@/lib/utils/auth';
 import { baseUrl } from '@/models/api';
@@ -42,11 +44,13 @@ const UserContext = createContext<undefined | UserContextType>(undefined);
 
 export const AUTH_STORAGE_KEY = 'auth';
 
-export const LOGIN_LOCKED_MESSAGE = 'Too many login attempts. Wait a few minutes and try again.';
+// 锁屏文案对外导出以便测试断言；取自英文词典，避免同一句话有两处副本。
+export const LOGIN_LOCKED_MESSAGE = dictionaries.en['auth.login.locked'];
 
 export function UserProvider({ children }: { children: ReactNode }) {
     const navigate = useNavigate();
     const location = useLocation();
+    const { t } = useTranslation();
     const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -163,15 +167,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
             try {
                 await api.post('/auth/logout');
-                toast.success('Successfully logged out');
+                toast.success(t('auth.logout.success'));
             } catch {
-                toast.error('Logout failed, but clearing local session');
+                toast.error(t('auth.logout.failed'));
             } finally {
                 clearAuth();
                 window.location.href = `${routes.login()}${finalReturnUrl}`;
             }
         },
-        [clearAuth, location.pathname],
+        [clearAuth, location.pathname, t],
     );
 
     const login = useCallback(
@@ -180,7 +184,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 const loginResponse = await api.post<unknown>('/auth/login', credentials);
 
                 if (loginResponse?.status !== 'success') {
-                    const errorMessage = 'Invalid login or password';
+                    const errorMessage = t('auth.login.errors.invalidCredentials');
                     toast.error(errorMessage);
 
                     return { error: errorMessage, success: false };
@@ -190,7 +194,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 const infoResponse = await api.get<AuthInfo>('/info');
 
                 if (infoResponse?.status !== 'success' || !infoResponse.data) {
-                    const errorMessage = 'Failed to load user information';
+                    const errorMessage = t('auth.login.loadUserFailed');
                     toast.error(errorMessage);
 
                     return { error: errorMessage, success: false };
@@ -199,7 +203,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 setAuth(infoResponse.data);
 
                 if (infoResponse.data.user?.type === 'local' && infoResponse.data.user.password_change_required) {
-                    toast.warning('Password change required');
+                    toast.warning(t('auth.login.passwordChangeRequired'));
 
                     return { passwordChangeRequired: true, success: true };
                 }
@@ -207,15 +211,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 return { success: true };
             } catch (error) {
                 const errorMessage =
-                    getApiErrorCode(error) === 'Auth.TooManyAttempts'
-                        ? LOGIN_LOCKED_MESSAGE
-                        : 'Login failed. Please try again.';
+                    getApiErrorCode(error) === 'Auth.TooManyAttempts' ? t('auth.login.locked') : t('auth.login.failed');
                 toast.error(errorMessage);
 
                 return { error: errorMessage, success: false };
             }
         },
-        [setAuth],
+        [setAuth, t],
     );
 
     const loginWithOAuth = useCallback(
@@ -228,12 +230,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
             const popup = window.open(
                 `${baseUrl}/auth/authorize?provider=${provider}&return_uri=${returnOAuthUri}`,
-                `${provider} Sign In`,
+                t('auth.oauth.popupTitle', { provider }),
                 `width=${width},height=${height},left=${left},top=${top}`,
             );
 
             if (!popup) {
-                const errorMessage = 'Popup blocked. Please allow popups for this site.';
+                const errorMessage = t('auth.oauth.popupBlocked');
                 toast.error(errorMessage);
 
                 return {
@@ -253,7 +255,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                         clearInterval(popupCheck);
                         clearTimeout(timeoutId);
                         window.removeEventListener('message', messageHandler);
-                        const errorMessage = 'Authentication cancelled';
+                        const errorMessage = t('auth.oauth.cancelled');
                         toast.info(errorMessage);
                         resolve({
                             error: errorMessage,
@@ -272,7 +274,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                             popup.close();
                         }
 
-                        const errorMessage = 'Authentication timeout';
+                        const errorMessage = t('auth.oauth.timeout');
                         toast.error(errorMessage);
                         resolve({
                             error: errorMessage,
@@ -318,7 +320,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     }
 
                     cleanup();
-                    const errorMessage = event.data.error || 'Authentication failed';
+                    const errorMessage = event.data.error || t('auth.login.errors.authFailed');
                     toast.error(errorMessage);
                     resolve({
                         error: errorMessage,
@@ -329,7 +331,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 window.addEventListener('message', messageHandler);
             });
         },
-        [setAuth],
+        [setAuth, t],
     );
 
     useEffect(() => {
@@ -355,7 +357,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     setAuth(info.data);
                 } else {
                     clearAuth();
-                    toast.error('Session expired. Please login again.');
+                    toast.error(t('auth.session.expired'));
                     navigate(routes.login(location.pathname));
                 }
             } catch {
@@ -366,7 +368,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         updateAuth();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [location.pathname]);
+    }, [location.pathname, t]);
 
     useEffect(() => {
         const handleAuthRefresh = () => {

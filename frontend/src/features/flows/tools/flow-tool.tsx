@@ -6,6 +6,7 @@ import type { SearchLogFragmentFragment } from '@/graphql/types';
 import Markdown from '@/components/shared/markdown';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import FlowAgentIcon from '@/features/flows/agents/flow-agent-icon';
+import { useTranslation } from '@/hooks/use-translation';
 import { copyMessageToClipboard } from '@/lib/clipboard';
 import { matchesSearchTerm } from '@/lib/text-filter';
 import { formatDate, formatName } from '@/lib/utils/format';
@@ -16,6 +17,7 @@ interface FlowToolProps {
 }
 
 function FlowTool({ log, searchValue = '' }: FlowToolProps) {
+    const { t } = useTranslation();
     const { createdAt, engine, executor, initiator, query, result, subtaskId, taskId } = log;
 
     const searchChecks = useMemo(() => {
@@ -51,11 +53,14 @@ function FlowTool({ log, searchValue = '' }: FlowToolProps) {
     }
 
     const handleCopy = useCallback(async () => {
-        await copyMessageToClipboard({
-            message: query,
-            result: result || undefined,
-        });
-    }, [query, result]);
+        await copyMessageToClipboard(
+            {
+                message: query,
+                result: result || undefined,
+            },
+            t,
+        );
+    }, [query, result, t]);
 
     return (
         <div className="flex flex-col items-start">
@@ -69,7 +74,7 @@ function FlowTool({ log, searchValue = '' }: FlowToolProps) {
                                     <span>{formatName(engine)}</span>
                                 </span>
                             </TooltipTrigger>
-                            <TooltipContent>Tool name</TooltipContent>
+                            <TooltipContent>{t('flows.tools.toolName')}</TooltipContent>
                         </Tooltip>
                     </div>
 
@@ -86,7 +91,7 @@ function FlowTool({ log, searchValue = '' }: FlowToolProps) {
                             className="cursor-pointer"
                             onClick={() => setIsDetailsVisible(!isDetailsVisible)}
                         >
-                            {isDetailsVisible ? 'Hide details' : 'Show details'}
+                            {isDetailsVisible ? t('flows.common.hideDetails') : t('flows.common.showDetails')}
                         </div>
                         {isDetailsVisible && (
                             <>
@@ -121,19 +126,21 @@ function FlowTool({ log, searchValue = '' }: FlowToolProps) {
                             onClick={handleCopy}
                         />
                     </TooltipTrigger>
-                    <TooltipContent>Copy</TooltipContent>
+                    <TooltipContent>{t('flows.common.copy')}</TooltipContent>
                 </Tooltip>
                 <span className="text-muted-foreground/50">{formatDate(new Date(createdAt))}</span>
                 {taskId && (
                     <>
                         <span className="text-muted-foreground/50">|</span>
-                        <span className="text-muted-foreground/50">Task ID: {taskId}</span>
+                        <span className="text-muted-foreground/50">{t('flows.common.taskId', { id: taskId })}</span>
                     </>
                 )}
                 {subtaskId && (
                     <>
                         <span className="text-muted-foreground/50">|</span>
-                        <span className="text-muted-foreground/50">Subtask ID: {subtaskId}</span>
+                        <span className="text-muted-foreground/50">
+                            {t('flows.common.subtaskId', { id: subtaskId })}
+                        </span>
                     </>
                 )}
             </div>

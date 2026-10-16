@@ -1,6 +1,7 @@
 import { UploadCloudIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 
 export interface FileDropZoneProps {
@@ -30,15 +31,22 @@ export interface FileDropZoneProps {
  * `useResourcesUpload().openFilePicker`).
  */
 export function FileDropZone({
-    actionLabel = 'Browse files',
+    actionLabel,
     className,
-    description = 'or click the button to choose files from your computer',
+    description,
     hint,
     isDragging = false,
     isUploading = false,
     onBrowse,
-    title = 'Drag and drop your files',
+    title,
 }: FileDropZoneProps) {
+    const { t } = useTranslation();
+    // Each prop falls back to a localized default, so callers that supply
+    // their own copy (already translated by the page) keep overriding it.
+    const resolvedActionLabel = actionLabel ?? t('ui.fileDropZone.browse');
+    const resolvedDescription = description ?? t('ui.fileDropZone.description');
+    const resolvedTitle = title ?? t('ui.fileDropZone.title');
+
     return (
         <div
             className={cn(
@@ -56,8 +64,8 @@ export function FileDropZone({
                     isDragging && 'text-foreground scale-110',
                 )}
             />
-            <span className="text-sm font-medium">{isDragging ? 'Drop files here' : title}</span>
-            <span className="text-muted-foreground mt-1 max-w-md text-xs">{description}</span>
+            <span className="text-sm font-medium">{isDragging ? t('ui.fileDropZone.dropHere') : resolvedTitle}</span>
+            <span className="text-muted-foreground mt-1 max-w-md text-xs">{resolvedDescription}</span>
             <Button
                 className="mt-4 h-7 text-xs"
                 disabled={isUploading}
@@ -65,7 +73,7 @@ export function FileDropZone({
                 size="sm"
                 variant="outline"
             >
-                {actionLabel}
+                {resolvedActionLabel}
             </Button>
             {hint && <span className="text-muted-foreground mt-3 text-xs">{hint}</span>}
         </div>

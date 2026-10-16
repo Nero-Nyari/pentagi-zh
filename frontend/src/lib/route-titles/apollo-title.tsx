@@ -3,6 +3,10 @@ import type { ComponentType } from 'react';
 
 import { skipToken, useQuery } from '@apollo/client/react';
 
+import type { Translator } from '@/lib/i18n/types';
+
+import { useTranslation } from '@/hooks/use-translation';
+
 import { renderTitle, type RouteParams } from './render-title';
 
 interface ApolloTitleOpts<TData, TVars extends Record<string, unknown>> {
@@ -13,9 +17,11 @@ interface ApolloTitleOpts<TData, TVars extends Record<string, unknown>> {
     document: TypedDocumentNode<TData, TVars>;
     /**
      * Compute the label from the cached data and route params. Receives
-     * `undefined` when the query is skipped or the cache is empty.
+     * `undefined` when the query is skipped or the cache is empty. `t` is the
+     * active translator — the surrounding component subscribes to the language
+     * context, so a switch re-runs this and repaints the title.
      */
-    select: (data: null | TData | undefined, params: RouteParams) => string;
+    select: (data: null | TData | undefined, params: RouteParams, t: Translator) => string;
     /**
      * Return the variables for the query, or `null` to skip the query
      * entirely (used for `:id === 'new'` routes and missing params).
@@ -56,13 +62,14 @@ export function apolloTitle<TData, TVars extends Record<string, unknown>>(
     opts: ApolloTitleOpts<TData, TVars>,
 ): ApolloTitleComponent {
     function ApolloTitle({ params }: { params: RouteParams }) {
+        const { t } = useTranslation();
         const vars = opts.variables(params);
         const { data } = useQuery(
             opts.document,
             vars === null ? skipToken : { fetchPolicy: 'cache-only', variables: vars },
         );
 
-        return renderTitle(opts.select(data, params));
+        return renderTitle(opts.select(data, params, t));
     }
 
     return Object.assign(ApolloTitle, { [APOLLO_TITLE_MARKER]: true as const });

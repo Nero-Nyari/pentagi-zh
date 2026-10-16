@@ -46,6 +46,8 @@ import {
 
 type AgentPrompts = { human?: DefaultPrompt; system: DefaultPrompt };
 
+import type { Translator } from '@/lib/i18n/types';
+
 import {
     AppHeader,
     AppHeaderAction,
@@ -83,18 +85,19 @@ import {
 } from '@/graphql/types';
 import { useAppForm } from '@/hooks/use-app-form';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { useTranslation } from '@/hooks/use-translation';
 import { composeRefs } from '@/lib/compose-refs';
 import { formatPromptId } from '@/lib/route-titles/format-prompt-id';
 
-const VARIABLES_TITLE = 'Available variables';
+const createSystemFormSchema = (t: Translator) =>
+    z.object({
+        template: z.string().min(1, t('settings.prompt.validation.systemRequired')),
+    });
 
-const systemFormSchema = z.object({
-    template: z.string().min(1, 'System template is required'),
-});
-
-const humanFormSchema = z.object({
-    template: z.string().min(1, 'Human template is required'),
-});
+const createHumanFormSchema = (t: Translator) =>
+    z.object({
+        template: z.string().min(1, t('settings.prompt.validation.humanRequired')),
+    });
 
 interface FormMarkdownItemProps<T extends FieldValues> {
     'aria-label'?: string;
@@ -106,9 +109,9 @@ interface FormMarkdownItemProps<T extends FieldValues> {
     placeholder?: string;
 }
 
-type HumanFormData = z.infer<typeof humanFormSchema>;
+type HumanFormData = z.infer<ReturnType<typeof createHumanFormSchema>>;
 
-type SystemFormData = z.infer<typeof systemFormSchema>;
+type SystemFormData = z.infer<ReturnType<typeof createSystemFormSchema>>;
 
 // One pass over the `{{ … }}` blocks — the naive per-variable `.match` over the whole template is
 // O(variables × length) on every keystroke.
@@ -300,6 +303,7 @@ function SettingsPrompt() {
 }
 
 function SettingsPromptEditor({ promptId }: { promptId?: string }) {
+    const { t } = useTranslation();
     const { isDesktop } = useBreakpoint();
 
     const { data, error, loading, refetch } = useQuery(SettingsPromptsDocument);
@@ -358,7 +362,7 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
             setResetDialogOpen(false);
         } catch (error) {
             console.error('Reset error:', error);
-            setSubmitError(error instanceof Error ? error.message : 'An error occurred while resetting');
+            setSubmitError(error instanceof Error ? error.message : t('settings.prompt.error.reset'));
             setResetDialogOpen(false);
         }
     };
@@ -402,16 +406,19 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
             setValidationDialogOpen(true);
         } catch (error) {
             console.error('Validation error:', error);
-            setSubmitError(error instanceof Error ? error.message : 'An error occurred while validating');
+            setSubmitError(error instanceof Error ? error.message : t('settings.prompt.error.validation'));
         }
     };
+
+    const localizedSystemSchema = useMemo(() => createSystemFormSchema(t), [t]);
+    const localizedHumanSchema = useMemo(() => createHumanFormSchema(t), [t]);
 
     const systemForm = useAppForm<SystemFormData>({
         defaultValues: {
             template: '',
         },
         resetOptions: { keepDirtyValues: true },
-        schema: systemFormSchema,
+        schema: localizedSystemSchema,
     });
 
     const humanForm = useAppForm<HumanFormData>({
@@ -419,7 +426,7 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
             template: '',
         },
         resetOptions: { keepDirtyValues: true },
-        schema: humanFormSchema,
+        schema: localizedHumanSchema,
     });
 
     const { isDirty: isSystemDirty, isValid: isSystemValid } = useFormState({ control: systemForm.control });
@@ -570,7 +577,7 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
             return true;
         } catch (error) {
             console.error('Submit error:', error);
-            setSubmitError(error instanceof Error ? error.message : 'An error occurred while saving');
+            setSubmitError(error instanceof Error ? error.message : t('settings.prompt.error.save'));
 
             return false;
         }
@@ -595,7 +602,7 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
             const humanPromptType = agentData.human?.type;
 
             if (!humanPromptType) {
-                setSubmitError('Human prompt type not found');
+                setSubmitError(t('settings.prompt.error.humanTypeMissing'));
 
                 return false;
             }
@@ -621,7 +628,7 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
             return true;
         } catch (error) {
             console.error('Submit error:', error);
-            setSubmitError(error instanceof Error ? error.message : 'An error occurred while saving');
+            setSubmitError(error instanceof Error ? error.message : t('settings.prompt.error.save'));
 
             return false;
         }
@@ -671,14 +678,16 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
     const pageHeader = (
         <AppHeader>
             <AppHeaderContent>
-                <AppHeaderTitle icon={<FileText className="size-4 shrink-0" />}>Edit Prompt</AppHeaderTitle>
+                <AppHeaderTitle icon={<FileText className="size-4 shrink-0" />}>
+                    {t('settings.prompt.title')}
+                </AppHeaderTitle>
             </AppHeaderContent>
             {promptInfo && (
                 <AppHeaderActions>
                     <AppHeaderAction
                         disabled={isLoading}
                         icon={isValidateLoading ? <Spinner variant="circle" /> : <CheckCircle />}
-                        label={isValidateLoading ? 'Validating...' : 'Validate'}
+                        label={isValidateLoading ? t('settings.prompt.validating') : t('settings.prompt.validate')}
                         onClick={handleValidate}
                         type="button"
                         variant="outline"
@@ -686,14 +695,14 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                     <AppHeaderAction
                         form={activeFormId}
                         icon={<Save />}
-                        label="Save"
+                        label={t('settings.prompt.save')}
                         loading={isLoading}
                         type="submit"
                     />
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
-                                aria-label="Prompt actions"
+                                aria-label={t('settings.prompt.menuAria')}
                                 className="size-8 p-0"
                                 type="button"
                                 variant="ghost"
@@ -709,14 +718,16 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                                 <>
                                     <DropdownMenuItem onClick={() => setIsDiffDialogOpen(true)}>
                                         <FileDiff />
-                                        Diff
+                                        {t('settings.prompt.action.diff')}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         disabled={isLoading}
                                         onClick={handleReset}
                                     >
                                         {isDeleteLoading ? <Spinner variant="circle" /> : <RotateCcw />}
-                                        {isDeleteLoading ? 'Resetting...' : 'Reset'}
+                                        {isDeleteLoading
+                                            ? t('settings.prompt.action.resetting')
+                                            : t('settings.prompt.action.reset')}
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                 </>
@@ -725,12 +736,12 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                                 className="cursor-default gap-4 hover:bg-transparent focus:bg-transparent"
                                 onSelect={(event) => event.preventDefault()}
                             >
-                                View
+                                {t('settings.prompt.view')}
                                 <EditorViewModeToggle
                                     className="-my-1.5 -mr-2 ml-auto"
                                     mode={viewMode}
                                     onModeChange={setViewMode}
-                                    rawTooltip="Edit the raw prompt template"
+                                    rawTooltip={t('settings.prompt.rawTooltip')}
                                 />
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -746,8 +757,8 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                 {pageHeader}
                 <div className="flex flex-1 items-center justify-center p-4">
                     <LoadingState
-                        description="Please wait while we fetch prompt information"
-                        title="Loading prompt data..."
+                        description={t('settings.prompt.loading.description')}
+                        title={t('settings.prompt.loading.title')}
                     />
                 </div>
             </>
@@ -762,7 +773,7 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                     <ErrorState
                         message={error.message}
                         onRetry={refetch}
-                        title="Error loading prompt data"
+                        title={t('settings.prompt.error.title')}
                     />
                 </div>
             </>
@@ -779,8 +790,10 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                             <EmptyMedia>
                                 <AlertCircle className="text-destructive size-12" />
                             </EmptyMedia>
-                            <EmptyTitle>Prompt not found</EmptyTitle>
-                            <EmptyDescription>{`The prompt "${promptId}" could not be found or is not supported for editing.`}</EmptyDescription>
+                            <EmptyTitle>{t('settings.prompt.notFound.title')}</EmptyTitle>
+                            <EmptyDescription>
+                                {t('settings.prompt.notFound.description', { id: promptId ?? '' })}
+                            </EmptyDescription>
                         </EmptyHeader>
                     </Empty>
                 </div>
@@ -794,11 +807,11 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
     const promptPanel = (
         <>
             <div className="flex flex-col gap-2 text-center">
-                <h2 className="text-2xl font-semibold">Edit prompt</h2>
+                <h2 className="text-2xl font-semibold">{t('settings.prompt.panel.editTitle')}</h2>
                 <p className="text-muted-foreground">
                     {promptInfo.type === 'agent'
-                        ? 'Customize the templates this agent uses'
-                        : 'Customize the template this tool uses'}
+                        ? t('settings.prompt.panel.agent.subtitle')
+                        : t('settings.prompt.panel.tool.subtitle')}
                 </p>
             </div>
 
@@ -813,8 +826,8 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                 </h3>
                 <p className="text-muted-foreground text-sm">
                     {promptInfo.type === 'agent'
-                        ? 'Configure prompts for this AI agent'
-                        : 'Configure the prompt for this tool'}
+                        ? t('settings.prompt.panel.agent.description')
+                        : t('settings.prompt.panel.tool.description')}
                 </p>
             </div>
 
@@ -824,7 +837,7 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                     value="system"
                 >
                     <Code className="size-4" />
-                    System Prompt
+                    {t('settings.prompt.tab.system')}
                 </TabsTrigger>
                 <TabsTrigger
                     className="xl:dark:data-[state=active]:bg-card flex-1"
@@ -832,7 +845,7 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                     value="human"
                 >
                     <User className="size-4" />
-                    Human Prompt
+                    {t('settings.prompt.tab.human')}
                 </TabsTrigger>
             </TabsList>
 
@@ -847,7 +860,9 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
     );
 
     const systemPlaceholder =
-        promptInfo.type === 'tool' ? 'Enter the tool template...' : 'Enter the system prompt template...';
+        promptInfo.type === 'tool'
+            ? t('settings.prompt.editor.systemPlaceholder.tool')
+            : t('settings.prompt.editor.systemPlaceholder.agent');
 
     const promptEditor = (
         <>
@@ -863,7 +878,7 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                         onSubmit={systemForm.handleSubmit(handleSystemSubmit)}
                     >
                         <FormMarkdownItem
-                            aria-label="System prompt template"
+                            aria-label={t('settings.prompt.editor.systemAria')}
                             control={systemForm.control}
                             disabled={isLoading}
                             editorRef={editorRef}
@@ -888,13 +903,13 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                             onSubmit={humanForm.handleSubmit(handleHumanSubmit)}
                         >
                             <FormMarkdownItem
-                                aria-label="Human prompt template"
+                                aria-label={t('settings.prompt.editor.humanAria')}
                                 control={humanForm.control}
                                 disabled={isLoading}
                                 editorRef={editorRef}
                                 mode={viewMode}
                                 name="template"
-                                placeholder="Enter the human prompt template..."
+                                placeholder={t('settings.prompt.editor.humanPlaceholder')}
                             />
                         </form>
                     </Form>
@@ -925,18 +940,16 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
             </Tabs>
 
             <ConfirmationDialog
-                cancelText="Cancel"
+                cancelText={t('shared.confirmDialog.cancel')}
                 cancelVariant="outline"
                 confirmIcon={<RotateCcw />}
-                confirmText="Reset"
+                confirmText={t('settings.prompt.reset.dialogConfirm')}
                 confirmVariant="destructive"
-                description="Are you sure you want to reset this prompt to its default value? This action cannot be undone."
+                description={t('settings.prompt.reset.description')}
                 handleConfirm={handleConfirmReset}
                 handleOpenChange={setResetDialogOpen}
                 isOpen={resetDialogOpen}
-                itemName={`${activeTab} prompt`}
-                itemType="template"
-                title="Reset Prompt"
+                title={t('settings.prompt.reset.dialogTitle')}
             />
 
             <UnsavedChangesDialog
@@ -957,10 +970,12 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertCircle className="size-5" />
-                            Validation Results
+                            {t('settings.prompt.validation.title')}
                         </DialogTitle>
                         <DialogDescription>
-                            The validation result for the {activeTab} prompt template.
+                            {activeTab === 'system'
+                                ? t('settings.prompt.validation.description.system')
+                                : t('settings.prompt.validation.description.human')}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -973,19 +988,23 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                                     <XCircle className="size-4 text-red-500!" />
                                 )}
                                 <AlertTitle>
-                                    {validationResult.result === 'success' ? 'Valid Template' : 'Validation Error'}
+                                    {validationResult.result === 'success'
+                                        ? t('settings.prompt.validation.valid')
+                                        : t('settings.prompt.validation.error')}
                                 </AlertTitle>
                                 <AlertDescription>
                                     <div className="whitespace-pre-line">
                                         {validationResult.message}
                                         {validationResult.details && (
                                             <div className="mt-2">
-                                                <strong>Details:</strong> {validationResult.details}
+                                                <strong>{t('settings.prompt.validation.details')}</strong>{' '}
+                                                {validationResult.details}
                                             </div>
                                         )}
                                         {validationResult.line && (
                                             <div className="mt-1">
-                                                <strong>Line:</strong> {validationResult.line}
+                                                <strong>{t('settings.prompt.validation.line')}</strong>{' '}
+                                                {validationResult.line}
                                             </div>
                                         )}
                                     </div>
@@ -993,7 +1012,9 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                             </Alert>
 
                             <div className="flex justify-end">
-                                <Button onClick={() => setValidationDialogOpen(false)}>Close</Button>
+                                <Button onClick={() => setValidationDialogOpen(false)}>
+                                    {t('settings.prompt.validation.close')}
+                                </Button>
                             </div>
                         </div>
                     )}
@@ -1008,9 +1029,9 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <FileDiff className="size-5" />
-                            Diff
+                            {t('settings.prompt.diff.title')}
                         </DialogTitle>
-                        <DialogDescription>Changes between current value and default template.</DialogDescription>
+                        <DialogDescription>{t('settings.prompt.diff.description')}</DialogDescription>
                     </DialogHeader>
                     <div className="max-h-[70vh] overflow-auto">
                         <DiffContent
@@ -1026,6 +1047,7 @@ function SettingsPromptEditor({ promptId }: { promptId?: string }) {
 }
 
 function Variables({ currentTemplate, onVariableClick, variables }: VariablesProps) {
+    const { t } = useTranslation();
     const { isDesktop } = useBreakpoint();
 
     if (variables.length === 0) {
@@ -1045,7 +1067,7 @@ function Variables({ currentTemplate, onVariableClick, variables }: VariablesPro
             <div className="bg-card overflow-hidden rounded-lg border">
                 <div className="border-b px-4 py-3">
                     <h4 className="flex items-center gap-2 text-sm font-medium">
-                        {VARIABLES_TITLE}
+                        {t('settings.prompt.variables.title')}
                         <Badge
                             className="ml-auto font-normal tabular-nums"
                             variant="secondary"
@@ -1053,9 +1075,7 @@ function Variables({ currentTemplate, onVariableClick, variables }: VariablesPro
                             {variables.length}
                         </Badge>
                     </h4>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                        Click to insert at the cursor, or cycle through existing uses.
-                    </p>
+                    <p className="text-muted-foreground mt-1 text-xs">{t('settings.prompt.variables.description')}</p>
                 </div>
                 <div className="bg-background">{content}</div>
             </div>
@@ -1071,7 +1091,7 @@ function Variables({ currentTemplate, onVariableClick, variables }: VariablesPro
                     variant="secondary"
                 >
                     <Braces />
-                    {VARIABLES_TITLE}
+                    {t('settings.prompt.variables.title')}
                     <Badge
                         className="ml-auto h-5 font-normal tabular-nums"
                         variant="outline"
@@ -1091,6 +1111,7 @@ function Variables({ currentTemplate, onVariableClick, variables }: VariablesPro
 }
 
 function VariablesContent({ currentTemplate, onVariableClick, variables }: VariablesContentProps) {
+    const { t } = useTranslation();
     // Computed here, not in the parent, so the narrow-width popover only runs the
     // per-variable RegExp sweep while it's open and mounted.
     const counts = useMemo(() => countVariableUses(currentTemplate, variables), [currentTemplate, variables]);
@@ -1101,8 +1122,10 @@ function VariablesContent({ currentTemplate, onVariableClick, variables }: Varia
                 const count = counts[variable] ?? 0;
                 const isUsed = count > 0;
                 const action = isUsed
-                    ? `Go to next {{.${variable}}} in the template${count > 1 ? ` (${count} uses)` : ''}`
-                    : `Insert {{.${variable}}} at the cursor`;
+                    ? `${t('settings.prompt.variables.goToNext', { variable })}${
+                          count > 1 ? t('settings.prompt.variables.usesSuffix', { count }) : ''
+                      }`
+                    : t('settings.prompt.variables.insert', { variable });
 
                 return (
                     // className stays on Badge: Slot only concatenates, so `font-normal` would race

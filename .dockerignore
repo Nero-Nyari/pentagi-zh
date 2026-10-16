@@ -1,6 +1,8 @@
 frontend/coverage
 frontend/dist
-frontend/node_modules
+# The wildcard also covers leftovers from a failed install (e.g. `node_modules.orphan`).
+# Those are neither gitignored nor tracked, so without it they ride along in the build context.
+frontend/node_modules*
 frontend/e2e/test-results
 frontend/e2e/playwright-report
 frontend/e2e/blob-report

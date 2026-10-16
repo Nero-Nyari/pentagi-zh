@@ -57,6 +57,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useEffectAfterMount } from '@/hooks/use-effect-after-mount';
 import { useLatestRef } from '@/hooks/use-latest-ref';
 import { usePageStorageKeys } from '@/hooks/use-page-storage-keys';
+import { useTranslation } from '@/hooks/use-translation';
 import { useWindowVirtualList } from '@/hooks/use-window-virtual-list';
 import { clamp } from '@/lib/clamp';
 import { migrateLegacyTableState, updateTableState } from '@/lib/table-state';
@@ -195,8 +196,10 @@ interface DataTableFilterProps {
 }
 
 function DataTableEmptyState({ entityName, filterValue }: DataTableEmptyStateProps) {
+    const { t } = useTranslation();
+
     if (!entityName) {
-        return <>No results.</>;
+        return <>{t('ui.table.empty.legacy')}</>;
     }
 
     const hasFilter = filterValue.length > 0;
@@ -208,10 +211,13 @@ function DataTableEmptyState({ entityName, filterValue }: DataTableEmptyStatePro
                 <EmptyMedia variant="icon">
                     <Icon />
                 </EmptyMedia>
-                <EmptyTitle>{hasFilter ? 'No matches' : `No ${entityName} yet`}</EmptyTitle>
+                <EmptyTitle>
+                    {hasFilter ? t('ui.table.empty.noMatches') : t('ui.table.empty.noneYet', { entity: entityName })}
+                </EmptyTitle>
                 {hasFilter ? (
                     <EmptyDescription>
-                        No {entityName} match <code>{filterValue}</code>. Try a different query.
+                        {t('ui.table.empty.filterStart', { entity: entityName })} <code>{filterValue}</code>
+                        {t('ui.table.empty.filterEnd')}
                     </EmptyDescription>
                 ) : null}
             </EmptyHeader>
@@ -312,7 +318,7 @@ function DataTable<TData, TValue = unknown>({
     data,
     empty,
     filterColumn,
-    filterPlaceholder = 'Filter...',
+    filterPlaceholder,
     filterValue: externalFilterValue,
     initialPageSize = 10,
     initialSorting = [],
@@ -327,6 +333,11 @@ function DataTable<TData, TValue = unknown>({
     renderSubComponent,
     storageKey: explicitStorageKey,
 }: DataTableProps<TData, TValue>) {
+    const { t } = useTranslation();
+    // Pages that localize their own filter copy keep winning; the default is
+    // resolved here so the placeholder is translated when they don't pass one.
+    const resolvedFilterPlaceholder = filterPlaceholder ?? t('ui.table.filter.placeholder');
+
     const isColumnVisibilityControlled = externalColumnVisibility !== undefined;
     const isPageControlled = externalPageIndex !== undefined;
     const isFilterControlled = externalFilterValue !== undefined && onFilterChange !== undefined;
@@ -691,7 +702,7 @@ function DataTable<TData, TValue = unknown>({
                 {searchCandidateIds.length > 0 ? (
                     <DataTableFilter
                         onQueryChange={(value) => table.setGlobalFilter(value)}
-                        placeholder={filterPlaceholder}
+                        placeholder={resolvedFilterPlaceholder}
                         query={effectiveQuery}
                     />
                 ) : null}
@@ -699,7 +710,7 @@ function DataTable<TData, TValue = unknown>({
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
-                                aria-label="Search in"
+                                aria-label={t('ui.table.aria.searchIn')}
                                 className="shrink-0"
                                 size="icon"
                                 variant="outline"
@@ -749,7 +760,7 @@ function DataTable<TData, TValue = unknown>({
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
-                            aria-label="Columns"
+                            aria-label={t('ui.table.aria.columns')}
                             className="ml-auto shrink-0"
                             size="icon"
                             variant="outline"
@@ -850,18 +861,14 @@ function DataTable<TData, TValue = unknown>({
             </div>
             <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4">
                 <div className="text-muted-foreground flex-1 text-xs text-nowrap">
-                    {totalRows > 0 ? (
-                        <>
-                            Showing {rangeStart}–{rangeEnd} of {totalRows}
-                        </>
-                    ) : empty?.entityName ? (
-                        `No ${empty.entityName}`
-                    ) : (
-                        'No results'
-                    )}
+                    {totalRows > 0
+                        ? t('ui.table.footer.showing', { end: rangeEnd, start: rangeStart, total: totalRows })
+                        : empty?.entityName
+                          ? t('ui.table.footer.noEntity', { entity: empty.entityName })
+                          : t('ui.table.footer.noResults')}
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium">Rows per page</span>
+                    <span className="text-xs font-medium">{t('ui.table.rowsPerPage')}</span>
                     <Select
                         onValueChange={(value) => {
                             const pageSize = value === 'all' ? data.length : Number.parseInt(value, 10);
@@ -870,7 +877,7 @@ function DataTable<TData, TValue = unknown>({
                         value={pageSizeValue}
                     >
                         <SelectTrigger
-                            aria-label="Rows per page"
+                            aria-label={t('ui.table.aria.rowsPerPage')}
                             className="h-7 w-16 text-xs"
                         >
                             <SelectValue />
@@ -887,13 +894,13 @@ function DataTable<TData, TValue = unknown>({
                                     {size}
                                 </SelectItem>
                             ))}
-                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="all">{t('ui.table.all')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                 {pageCount > 0 ? (
                     <div className="flex items-center justify-center text-xs font-medium lg:w-24">
-                        Page {safePageIndex + 1} of {pageCount}
+                        {t('ui.table.pageOf', { page: safePageIndex + 1, total: pageCount })}
                     </div>
                 ) : (
                     <div
@@ -903,7 +910,7 @@ function DataTable<TData, TValue = unknown>({
                 )}
                 <div className="flex items-center gap-1">
                     <Button
-                        aria-label="First page"
+                        aria-label={t('ui.table.aria.firstPage')}
                         disabled={!table.getCanPreviousPage()}
                         onClick={() => table.firstPage()}
                         size="icon-xs"
@@ -912,7 +919,7 @@ function DataTable<TData, TValue = unknown>({
                         <ChevronsLeft />
                     </Button>
                     <Button
-                        aria-label="Previous page"
+                        aria-label={t('ui.table.aria.previousPage')}
                         disabled={!table.getCanPreviousPage()}
                         onClick={() => table.previousPage()}
                         size="icon-xs"
@@ -921,7 +928,7 @@ function DataTable<TData, TValue = unknown>({
                         <ChevronLeft />
                     </Button>
                     <Button
-                        aria-label="Next page"
+                        aria-label={t('ui.table.aria.nextPage')}
                         disabled={!table.getCanNextPage()}
                         onClick={() => table.nextPage()}
                         size="icon-xs"
@@ -930,7 +937,7 @@ function DataTable<TData, TValue = unknown>({
                         <ChevronRight />
                     </Button>
                     <Button
-                        aria-label="Last page"
+                        aria-label={t('ui.table.aria.lastPage')}
                         disabled={!table.getCanNextPage()}
                         onClick={() => table.lastPage()}
                         size="icon-xs"
@@ -1003,6 +1010,7 @@ function DataTableColumnHeader<TData, TValue = unknown>({ column, title }: DataT
  * was the entire class of races the previous design carried.
  */
 function DataTableFilter({ onQueryChange, placeholder, query }: DataTableFilterProps) {
+    const { t } = useTranslation();
     const [localValue, setLocalValue] = useState(query);
     const lastEmittedReference = useRef(query);
     // Generated per-instance so pages with multiple DataTables (e.g.
@@ -1068,7 +1076,7 @@ function DataTableFilter({ onQueryChange, placeholder, query }: DataTableFilterP
             {localValue ? (
                 <InputGroupAddon align="inline-end">
                     <InputGroupButton
-                        aria-label="Clear search"
+                        aria-label={t('ui.table.aria.clearSearch')}
                         onClick={handleClear}
                         type="button"
                     >

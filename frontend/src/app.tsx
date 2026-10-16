@@ -27,6 +27,7 @@ import { routes } from '@/lib/routes';
 import { FavoritesProvider } from '@/providers/favorites-provider';
 import { FlowProvider } from '@/providers/flow-provider';
 import { KnowledgesProvider } from '@/providers/knowledges-provider';
+import { LanguageProvider } from '@/providers/language-provider';
 import { ProvidersProvider } from '@/providers/providers-provider';
 import { ResourcesProvider } from '@/providers/resources-provider';
 import { SidebarFlowsProvider } from '@/providers/sidebar-flows-provider';
@@ -283,9 +284,14 @@ function App() {
         <ApolloProvider client={client}>
             <MotionConfig reducedMotion="user">
                 <ThemeProvider>
-                    <Toaster />
-                    <ConnectionStatus />
-                    <RouterProvider router={router} />
+                    {/* Above the router so public routes (login, OAuth result)
+                        translate too, and so a language switch never remounts
+                        the router. */}
+                    <LanguageProvider>
+                        <Toaster />
+                        <ConnectionStatus />
+                        <RouterProvider router={router} />
+                    </LanguageProvider>
                 </ThemeProvider>
             </MotionConfig>
         </ApolloProvider>

@@ -17,9 +17,11 @@ import {
     UsageStatsByFlowDocument,
     UsageStatsByModelAgentsForFlowDocument,
 } from '@/graphql/types';
+import { useTranslation } from '@/hooks/use-translation';
 import { formatCost, formatDuration, formatNumber, formatTokenCount } from '@/lib/utils/format';
 
 export function FlowDashboardOverview({ flowId }: { flowId: string }) {
+    const { t } = useTranslation();
     const {
         data: usageData,
         error: usageError,
@@ -116,35 +118,40 @@ export function FlowDashboardOverview({ flowId }: { flowId: string }) {
         <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <MetricCard
-                    description={`Subtasks: ${flowStats?.totalSubtasksCount ?? 0} · Assistants: ${flowStats?.totalAssistantsCount ?? 0}`}
+                    description={t('flows.dashboard.metric.tasks.description', {
+                        assistants: flowStats?.totalAssistantsCount ?? 0,
+                        subtasks: flowStats?.totalSubtasksCount ?? 0,
+                    })}
                     error={!!flowStatsError && !flowStatsData}
                     icon={<GitFork className="text-muted-foreground size-4" />}
                     loading={anyLoading}
-                    title="Tasks"
+                    title={t('flows.dashboard.metric.tasks.title')}
                     value={flowStats ? formatNumber(flowStats.totalTasksCount) : '0'}
                 />
                 <MetricCard
-                    description={`Duration: ${toolcalls ? formatDuration(toolcalls.totalDurationSeconds) : '—'}`}
+                    description={t('flows.dashboard.metric.toolCalls.description', {
+                        duration: toolcalls ? formatDuration(toolcalls.totalDurationSeconds) : '—',
+                    })}
                     error={!!toolcallsError && !toolcallsData}
                     icon={<Activity className="text-muted-foreground size-4" />}
                     loading={anyLoading}
-                    title="Tool Calls"
+                    title={t('flows.dashboard.metric.toolCalls.title')}
                     value={toolcalls ? formatNumber(toolcalls.totalCount) : '0'}
                 />
                 <MetricCard
-                    description="Input + Output tokens"
+                    description={t('flows.dashboard.metric.tokens.description')}
                     error={!!usageError && !usageData}
                     icon={<Cpu className="text-muted-foreground size-4" />}
                     loading={anyLoading}
-                    title="Tokens"
+                    title={t('flows.dashboard.metric.tokens.title')}
                     value={formatTokenCount(totalTokens)}
                 />
                 <MetricCard
-                    description="LLM spending for this flow"
+                    description={t('flows.dashboard.metric.cost.description')}
                     error={!!usageError && !usageData}
                     icon={<CircleDollarSign className="text-muted-foreground size-4" />}
                     loading={anyLoading}
-                    title="Cost"
+                    title={t('flows.dashboard.metric.cost.title')}
                     value={formatCost(totalCost)}
                 />
             </div>
@@ -152,25 +159,43 @@ export function FlowDashboardOverview({ flowId }: { flowId: string }) {
             {!!modelAgentRows.length && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Usage by Model &amp; Provider</CardTitle>
-                        <CardDescription>
-                            LLM token usage and costs grouped by model and provider, with agent types used
-                        </CardDescription>
+                        <CardTitle>{t('flows.dashboard.model.title')}</CardTitle>
+                        <CardDescription>{t('flows.dashboard.model.description')}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table aria-label="Usage by Model & Provider">
+                        <Table aria-label={t('flows.dashboard.model.title')}>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-40 whitespace-nowrap">Model</TableHead>
-                                    <TableHead className="whitespace-nowrap">Provider</TableHead>
-                                    <TableHead className="w-36 whitespace-nowrap">Agents</TableHead>
-                                    <TableHead className="text-right whitespace-nowrap">Tokens In</TableHead>
-                                    <TableHead className="text-right whitespace-nowrap">Tokens Out</TableHead>
-                                    <TableHead className="text-right whitespace-nowrap">Cache In</TableHead>
-                                    <TableHead className="text-right whitespace-nowrap">Cache Out</TableHead>
-                                    <TableHead className="text-right whitespace-nowrap">Cost In</TableHead>
-                                    <TableHead className="text-right whitespace-nowrap">Cost Out</TableHead>
-                                    <TableHead className="text-right whitespace-nowrap">Total Cost</TableHead>
+                                    <TableHead className="w-40 whitespace-nowrap">
+                                        {t('flows.dashboard.table.model')}
+                                    </TableHead>
+                                    <TableHead className="whitespace-nowrap">
+                                        {t('flows.dashboard.table.provider')}
+                                    </TableHead>
+                                    <TableHead className="w-36 whitespace-nowrap">
+                                        {t('flows.dashboard.table.agents')}
+                                    </TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">
+                                        {t('flows.dashboard.table.tokensIn')}
+                                    </TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">
+                                        {t('flows.dashboard.table.tokensOut')}
+                                    </TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">
+                                        {t('flows.dashboard.table.cacheIn')}
+                                    </TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">
+                                        {t('flows.dashboard.table.cacheOut')}
+                                    </TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">
+                                        {t('flows.dashboard.table.costIn')}
+                                    </TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">
+                                        {t('flows.dashboard.table.costOut')}
+                                    </TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">
+                                        {t('flows.dashboard.table.totalCost')}
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -229,21 +254,21 @@ export function FlowDashboardOverview({ flowId }: { flowId: string }) {
             {!!agentTypeRows.length && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Usage by Agent Type</CardTitle>
-                        <CardDescription>LLM token usage and costs per agent type in this flow</CardDescription>
+                        <CardTitle>{t('flows.dashboard.agentType.title')}</CardTitle>
+                        <CardDescription>{t('flows.dashboard.agentType.description')}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table aria-label="Usage by Agent Type">
+                        <Table aria-label={t('flows.dashboard.agentType.title')}>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Agent Type</TableHead>
-                                    <TableHead className="text-right">Tokens In</TableHead>
-                                    <TableHead className="text-right">Tokens Out</TableHead>
-                                    <TableHead className="text-right">Cache In</TableHead>
-                                    <TableHead className="text-right">Cache Out</TableHead>
-                                    <TableHead className="text-right">Cost In</TableHead>
-                                    <TableHead className="text-right">Cost Out</TableHead>
-                                    <TableHead className="text-right">Total Cost</TableHead>
+                                    <TableHead>{t('flows.dashboard.agentType.column')}</TableHead>
+                                    <TableHead className="text-right">{t('flows.dashboard.table.tokensIn')}</TableHead>
+                                    <TableHead className="text-right">{t('flows.dashboard.table.tokensOut')}</TableHead>
+                                    <TableHead className="text-right">{t('flows.dashboard.table.cacheIn')}</TableHead>
+                                    <TableHead className="text-right">{t('flows.dashboard.table.cacheOut')}</TableHead>
+                                    <TableHead className="text-right">{t('flows.dashboard.table.costIn')}</TableHead>
+                                    <TableHead className="text-right">{t('flows.dashboard.table.costOut')}</TableHead>
+                                    <TableHead className="text-right">{t('flows.dashboard.table.totalCost')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -263,18 +288,22 @@ export function FlowDashboardOverview({ flowId }: { flowId: string }) {
             {!!toolcallsByFunction.length && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Tool Calls by Function</CardTitle>
-                        <CardDescription>Execution statistics per tool function in this flow</CardDescription>
+                        <CardTitle>{t('flows.dashboard.toolByFunction.title')}</CardTitle>
+                        <CardDescription>{t('flows.dashboard.toolByFunction.description')}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table aria-label="Tool Calls by Function">
+                        <Table aria-label={t('flows.dashboard.toolByFunction.title')}>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Function</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead className="text-right">Count</TableHead>
-                                    <TableHead className="text-right">Total Duration</TableHead>
-                                    <TableHead className="text-right">Avg Duration</TableHead>
+                                    <TableHead>{t('flows.dashboard.table.function')}</TableHead>
+                                    <TableHead>{t('flows.dashboard.table.type')}</TableHead>
+                                    <TableHead className="text-right">{t('flows.dashboard.table.count')}</TableHead>
+                                    <TableHead className="text-right">
+                                        {t('flows.dashboard.table.totalDuration')}
+                                    </TableHead>
+                                    <TableHead className="text-right">
+                                        {t('flows.dashboard.table.avgDuration')}
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -283,7 +312,9 @@ export function FlowDashboardOverview({ flowId }: { flowId: string }) {
                                         <TableCell className="font-medium">{item.functionName}</TableCell>
                                         <TableCell>
                                             <Badge variant={item.isAgent ? 'secondary' : 'outline'}>
-                                                {item.isAgent ? 'Agent' : 'Tool'}
+                                                {item.isAgent
+                                                    ? t('flows.dashboard.badge.agent')
+                                                    : t('flows.dashboard.badge.tool')}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">{formatNumber(item.totalCount)}</TableCell>

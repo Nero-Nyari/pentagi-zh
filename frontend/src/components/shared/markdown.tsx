@@ -25,6 +25,7 @@ import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
 
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
+import { useTranslation } from '@/hooks/use-translation';
 import { escapeRegExp } from '@/lib/utils/regex';
 
 const lowlight = createLowlight();
@@ -93,6 +94,7 @@ const textElements = [
 ];
 
 function Markdown({ children, className, searchValue }: MarkdownProps) {
+    const { t } = useTranslation();
     const processedSearch = useMemo(() => {
         const trimmedSearch = searchValue?.trim();
 
@@ -231,14 +233,14 @@ function Markdown({ children, className, searchValue }: MarkdownProps) {
         components.table = ({ children: nodeChildren, ...props }) => (
             <ScrollableRegion
                 className="overflow-x-auto"
-                label="Table"
+                label={t('shared.markdown.tableRegion')}
             >
                 <table {...props}>{processedSearch ? processTextNode(nodeChildren) : nodeChildren}</table>
             </ScrollableRegion>
         );
 
         return components;
-    }, [processedSearch, createComponentRenderer, processTextNode]);
+    }, [processedSearch, createComponentRenderer, processTextNode, t]);
 
     return (
         <div className={`prose prose-sm dark:prose-invert max-w-none ${className || ''}`}>

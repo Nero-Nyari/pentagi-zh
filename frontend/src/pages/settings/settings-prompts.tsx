@@ -23,6 +23,8 @@ import type { DefaultPromptFragmentFragment as DefaultPrompt, PromptType } from 
 
 type AgentPrompts = { human?: DefaultPrompt; system: DefaultPrompt };
 
+import type { TranslationKey } from '@/lib/i18n/types';
+
 import { AppHeader, AppHeaderContent, AppHeaderTitle } from '@/components/layouts/app/app-header';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { ErrorState } from '@/components/shared/error-state';
@@ -42,8 +44,16 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Spinner } from '@/components/ui/spinner';
 import { DeletePromptDocument, SettingsPromptsDocument } from '@/graphql/types';
 import { usePageStorageKeys } from '@/hooks/use-page-storage-keys';
+import { useTranslation } from '@/hooks/use-translation';
 import { formatPromptId } from '@/lib/route-titles/format-prompt-id';
 import { routes } from '@/lib/routes';
+
+// 状态值本身参与表格数据比较，必须保持原文；只有渲染时映射到本地化文案。
+const promptStatusLabelKey: Record<'Custom' | 'Default' | 'N/A', TranslationKey> = {
+    Custom: 'settings.prompts.status.custom',
+    Default: 'settings.prompts.status.default',
+    'N/A': 'settings.prompts.status.na',
+};
 
 type AgentPromptTableData = {
     displayName: string;
@@ -67,6 +77,7 @@ type ToolPromptTableData = {
 };
 
 function SettingsPrompts() {
+    const { t } = useTranslation();
     const { data, error, loading: isLoading, refetch } = useQuery(SettingsPromptsDocument);
     const [deletePrompt, { loading: isDeleteLoading }] = useMutation(DeletePromptDocument);
     const navigate = useNavigate();
@@ -189,7 +200,7 @@ function SettingsPrompts() {
 
             setResetOperation(null);
         } catch (error) {
-            toast.error('Failed to reset prompt', {
+            toast.error(t('settings.prompts.reset.toastError'), {
                 description: error instanceof Error ? error.message : undefined,
             });
         }
@@ -325,41 +336,41 @@ function SettingsPrompts() {
                         onClick={() => handleColumnSort(column)}
                         variant="link"
                     >
-                        Agent Name
+                        {t('settings.prompts.column.agentName')}
                         {sorted === 'asc' ? <ArrowDown /> : sorted === 'desc' ? <ArrowUp /> : null}
                     </Button>
                 );
             },
-            meta: { columnMenuLabel: 'Agent Name', searchable: true },
+            meta: { columnMenuLabel: t('settings.prompts.column.agentName'), searchable: true },
         },
         {
             accessorKey: 'systemStatus',
             cell: ({ row }) => {
-                const status = row.getValue('systemStatus') as string;
+                const status = row.getValue('systemStatus') as 'Custom' | 'Default' | 'N/A';
 
                 return (
                     <Badge variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}>
-                        {status}
+                        {t(promptStatusLabelKey[status])}
                     </Badge>
                 );
             },
-            header: 'System Prompt',
-            meta: { columnMenuLabel: 'System Prompt', searchable: true },
+            header: t('settings.prompts.column.systemPrompt'),
+            meta: { columnMenuLabel: t('settings.prompts.column.systemPrompt'), searchable: true },
             size: 100,
         },
         {
             accessorKey: 'humanStatus',
             cell: ({ row }) => {
-                const status = row.getValue('humanStatus') as string;
+                const status = row.getValue('humanStatus') as 'Custom' | 'Default' | 'N/A';
 
                 return (
                     <Badge variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}>
-                        {status}
+                        {t(promptStatusLabelKey[status])}
                     </Badge>
                 );
             },
-            header: 'Human Prompt',
-            meta: { columnMenuLabel: 'Human Prompt', searchable: true },
+            header: t('settings.prompts.column.humanPrompt'),
+            meta: { columnMenuLabel: t('settings.prompts.column.humanPrompt'), searchable: true },
             size: 100,
         },
         {
@@ -371,7 +382,7 @@ function SettingsPrompts() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
-                                    aria-label="Open menu"
+                                    aria-label={t('settings.prompts.row.menuAria')}
                                     className="size-8 p-0"
                                     variant="ghost"
                                 >
@@ -384,7 +395,7 @@ function SettingsPrompts() {
                             >
                                 <DropdownMenuItem onClick={() => handlePromptEdit(agent.name)}>
                                     <Pencil className="size-3" />
-                                    Edit
+                                    {t('settings.prompts.row.edit')}
                                 </DropdownMenuItem>
                                 {(canResetPrompt(agent.name, 'system') ||
                                     canResetPrompt(agent.name, 'human') ||
@@ -406,12 +417,12 @@ function SettingsPrompts() {
                                                     className="size-3"
                                                     variant="circle"
                                                 />
-                                                Resetting...
+                                                {t('settings.prompts.row.resetting')}
                                             </>
                                         ) : (
                                             <>
                                                 <RotateCcw className="size-3" />
-                                                Reset System
+                                                {t('settings.prompts.row.resetSystem')}
                                             </>
                                         )}
                                     </DropdownMenuItem>
@@ -433,12 +444,12 @@ function SettingsPrompts() {
                                                     className="size-3"
                                                     variant="circle"
                                                 />
-                                                Resetting...
+                                                {t('settings.prompts.row.resetting')}
                                             </>
                                         ) : (
                                             <>
                                                 <RotateCcw className="size-3" />
-                                                Reset Human
+                                                {t('settings.prompts.row.resetHuman')}
                                             </>
                                         )}
                                     </DropdownMenuItem>
@@ -460,12 +471,12 @@ function SettingsPrompts() {
                                                     className="size-3"
                                                     variant="circle"
                                                 />
-                                                Resetting...
+                                                {t('settings.prompts.row.resetting')}
                                             </>
                                         ) : (
                                             <>
                                                 <Trash2 className="size-3" />
-                                                Reset All
+                                                {t('settings.prompts.row.resetAll')}
                                             </>
                                         )}
                                     </DropdownMenuItem>
@@ -501,26 +512,26 @@ function SettingsPrompts() {
                         onClick={() => handleColumnSort(column)}
                         variant="link"
                     >
-                        Tool Name
+                        {t('settings.prompts.column.toolName')}
                         {sorted === 'asc' ? <ArrowDown /> : sorted === 'desc' ? <ArrowUp /> : null}
                     </Button>
                 );
             },
-            meta: { columnMenuLabel: 'Tool Name', searchable: true },
+            meta: { columnMenuLabel: t('settings.prompts.column.toolName'), searchable: true },
         },
         {
             accessorKey: 'status',
             cell: ({ row }) => {
-                const status = row.getValue('status') as string;
+                const status = row.getValue('status') as 'Custom' | 'Default' | 'N/A';
 
                 return (
                     <Badge variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}>
-                        {status}
+                        {t(promptStatusLabelKey[status])}
                     </Badge>
                 );
             },
-            header: 'Prompt',
-            meta: { columnMenuLabel: 'Prompt', searchable: true },
+            header: t('settings.prompts.column.prompt'),
+            meta: { columnMenuLabel: t('settings.prompts.column.prompt'), searchable: true },
             size: 100,
         },
         {
@@ -532,7 +543,7 @@ function SettingsPrompts() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
-                                    aria-label="Open menu"
+                                    aria-label={t('settings.prompts.row.menuAria')}
                                     className="size-8 p-0"
                                     variant="ghost"
                                 >
@@ -545,7 +556,7 @@ function SettingsPrompts() {
                             >
                                 <DropdownMenuItem onClick={() => handlePromptEdit(tool.name)}>
                                     <Pencil className="size-3" />
-                                    Edit
+                                    {t('settings.prompts.row.edit')}
                                 </DropdownMenuItem>
                                 {canResetPrompt(tool.name, 'tool') && (
                                     <>
@@ -566,12 +577,12 @@ function SettingsPrompts() {
                                                         className="size-3"
                                                         variant="circle"
                                                     />
-                                                    Resetting...
+                                                    {t('settings.prompts.row.resetting')}
                                                 </>
                                             ) : (
                                                 <>
                                                     <RotateCcw className="size-3" />
-                                                    Reset
+                                                    {t('settings.prompts.row.reset')}
                                                 </>
                                             )}
                                         </DropdownMenuItem>
@@ -601,7 +612,7 @@ function SettingsPrompts() {
 
         return (
             <div className="bg-muted/20 flex flex-col gap-4 border-t p-4">
-                <h4 className="font-medium">Prompt Templates</h4>
+                <h4 className="font-medium">{t('settings.prompts.detail.templates')}</h4>
                 <hr className="border-muted-foreground/20" />
 
                 <div className="flex flex-col gap-4">
@@ -609,13 +620,13 @@ function SettingsPrompts() {
                         <div>
                             <h5 className="mb-2 flex items-center gap-2 text-sm font-medium">
                                 <Code className="size-3" />
-                                System Prompt
+                                {t('settings.prompts.detail.system')}
                                 {userSystemPrompt && (
                                     <Badge
                                         className="text-xs"
                                         variant="secondary"
                                     >
-                                        Custom
+                                        {t('settings.prompts.detail.custom')}
                                     </Badge>
                                 )}
                             </h5>
@@ -629,13 +640,13 @@ function SettingsPrompts() {
                         <div>
                             <h5 className="mb-2 flex items-center gap-2 text-sm font-medium">
                                 <User className="size-3" />
-                                Human Prompt
+                                {t('settings.prompts.detail.human')}
                                 {userHumanPrompt && (
                                     <Badge
                                         className="text-xs"
                                         variant="secondary"
                                     >
-                                        Custom
+                                        {t('settings.prompts.detail.custom')}
                                     </Badge>
                                 )}
                             </h5>
@@ -659,13 +670,13 @@ function SettingsPrompts() {
         return (
             <div className="bg-muted/20 border-t p-4">
                 <div className="mb-2 flex items-center gap-2">
-                    <h5 className="text-sm font-medium">Template</h5>
+                    <h5 className="text-sm font-medium">{t('settings.prompts.detail.template')}</h5>
                     {userToolPrompt && (
                         <Badge
                             className="text-xs"
                             variant="secondary"
                         >
-                            Custom
+                            {t('settings.prompts.detail.custom')}
                         </Badge>
                     )}
                 </div>
@@ -686,7 +697,7 @@ function SettingsPrompts() {
             <>
                 <ContextMenuItem onClick={() => handlePromptEdit(agent.name)}>
                     <Pencil className="size-3" />
-                    Edit
+                    {t('settings.prompts.row.edit')}
                 </ContextMenuItem>
                 {hasResetOptions && <ContextMenuSeparator />}
                 {canResetPrompt(agent.name, 'system') && (
@@ -702,8 +713,8 @@ function SettingsPrompts() {
                         {isDeleteLoading &&
                         resetOperation?.promptName === agent.name &&
                         resetOperation?.type === 'system'
-                            ? 'Resetting...'
-                            : 'Reset System'}
+                            ? t('settings.prompts.row.resetting')
+                            : t('settings.prompts.row.resetSystem')}
                     </ContextMenuItem>
                 )}
                 {agent.hasHuman && canResetPrompt(agent.name, 'human') && (
@@ -719,8 +730,8 @@ function SettingsPrompts() {
                         {isDeleteLoading &&
                         resetOperation?.promptName === agent.name &&
                         resetOperation?.type === 'human'
-                            ? 'Resetting...'
-                            : 'Reset Human'}
+                            ? t('settings.prompts.row.resetting')
+                            : t('settings.prompts.row.resetHuman')}
                     </ContextMenuItem>
                 )}
                 {canResetPrompt(agent.name, 'all') && (
@@ -734,8 +745,8 @@ function SettingsPrompts() {
                     >
                         <Trash2 className="size-3" />
                         {isDeleteLoading && resetOperation?.promptName === agent.name && resetOperation?.type === 'all'
-                            ? 'Resetting...'
-                            : 'Reset All'}
+                            ? t('settings.prompts.row.resetting')
+                            : t('settings.prompts.row.resetAll')}
                     </ContextMenuItem>
                 )}
             </>
@@ -746,7 +757,7 @@ function SettingsPrompts() {
         <>
             <ContextMenuItem onClick={() => handlePromptEdit(tool.name)}>
                 <Pencil />
-                Edit
+                {t('settings.prompts.row.edit')}
             </ContextMenuItem>
             {canResetPrompt(tool.name, 'tool') && (
                 <>
@@ -761,8 +772,8 @@ function SettingsPrompts() {
                     >
                         <RotateCcw />
                         {isDeleteLoading && resetOperation?.promptName === tool.name && resetOperation?.type === 'tool'
-                            ? 'Resetting...'
-                            : 'Reset'}
+                            ? t('settings.prompts.row.resetting')
+                            : t('settings.prompts.row.reset')}
                     </ContextMenuItem>
                 </>
             )}
@@ -772,7 +783,9 @@ function SettingsPrompts() {
     const pageHeader = (
         <AppHeader>
             <AppHeaderContent>
-                <AppHeaderTitle icon={<FileText className="size-4 shrink-0" />}>Prompts</AppHeaderTitle>
+                <AppHeaderTitle icon={<FileText className="size-4 shrink-0" />}>
+                    {t('settings.prompts.title')}
+                </AppHeaderTitle>
             </AppHeaderContent>
         </AppHeader>
     );
@@ -784,8 +797,8 @@ function SettingsPrompts() {
                 <div className="flex flex-1 flex-col gap-6 p-4">
                     <SettingsPromptsHeader />
                     <LoadingState
-                        description="Please wait while we fetch your prompt templates"
-                        title="Loading prompts..."
+                        description={t('settings.prompts.loading.description')}
+                        title={t('settings.prompts.loading.title')}
                     />
                 </div>
             </>
@@ -802,7 +815,7 @@ function SettingsPrompts() {
                     <ErrorState
                         message={error.message}
                         onRetry={refetch}
-                        title="Error loading prompts"
+                        title={t('settings.prompts.error.title')}
                     />
                 </div>
             </>
@@ -823,8 +836,8 @@ function SettingsPrompts() {
                             <EmptyMedia variant="icon">
                                 <Settings />
                             </EmptyMedia>
-                            <EmptyTitle>No prompts available</EmptyTitle>
-                            <EmptyDescription>Prompt templates could not be loaded</EmptyDescription>
+                            <EmptyTitle>{t('settings.prompts.empty.title')}</EmptyTitle>
+                            <EmptyDescription>{t('settings.prompts.empty.description')}</EmptyDescription>
                         </EmptyHeader>
                     </Empty>
                 </div>
@@ -842,17 +855,17 @@ function SettingsPrompts() {
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                             <Bot className="text-muted-foreground size-5" />
-                            <h2 className="text-lg font-semibold">Agent Prompts</h2>
+                            <h2 className="text-lg font-semibold">{t('settings.prompts.agent.section')}</h2>
                             <Badge variant="secondary">{agentPrompts.length}</Badge>
                         </div>
-                        <p className="text-muted-foreground text-sm">System and human prompts for AI agents</p>
+                        <p className="text-muted-foreground text-sm">{t('settings.prompts.agent.description')}</p>
                         <DataTable<AgentPromptTableData>
                             columns={agentColumns}
                             data={agentPrompts}
-                            empty={{ entityName: 'agent prompts' }}
-                            filterPlaceholder="Filter agents..."
+                            empty={{ entityName: t('settings.prompts.agent.entity') }}
+                            filterPlaceholder={t('settings.prompts.agent.filterPlaceholder')}
                             initialPageSize={1000}
-                            label="Agent Prompts"
+                            label={t('settings.prompts.agent.section')}
                             renderRowContextMenu={renderAgentRowContextMenu}
                             renderSubComponent={renderAgentSubComponent}
                             storageKey={`${tableStorageBase}:agents`}
@@ -864,17 +877,17 @@ function SettingsPrompts() {
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                             <Wrench className="text-muted-foreground size-5" />
-                            <h2 className="text-lg font-semibold">Tool Prompts</h2>
+                            <h2 className="text-lg font-semibold">{t('settings.prompts.tool.section')}</h2>
                             <Badge variant="secondary">{toolPrompts.length}</Badge>
                         </div>
-                        <p className="text-muted-foreground text-sm">Prompt templates for system tools and utilities</p>
+                        <p className="text-muted-foreground text-sm">{t('settings.prompts.tool.description')}</p>
                         <DataTable<ToolPromptTableData>
                             columns={toolColumns}
                             data={toolPrompts}
-                            empty={{ entityName: 'tool prompts' }}
-                            filterPlaceholder="Filter tools..."
+                            empty={{ entityName: t('settings.prompts.tool.entity') }}
+                            filterPlaceholder={t('settings.prompts.tool.filterPlaceholder')}
                             initialPageSize={1000}
-                            label="Tool Prompts"
+                            label={t('settings.prompts.tool.section')}
                             renderRowContextMenu={renderToolRowContextMenu}
                             renderSubComponent={renderToolSubComponent}
                             storageKey={`${tableStorageBase}:tools`}
@@ -884,33 +897,39 @@ function SettingsPrompts() {
             </div>
 
             <ConfirmationDialog
-                cancelText="Cancel"
+                cancelText={t('shared.confirmDialog.cancel')}
                 cancelVariant="outline"
                 confirmIcon={<RotateCcw />}
-                confirmText="Reset"
+                confirmText={t('settings.prompts.reset.confirm')}
                 confirmVariant="destructive"
                 description={
                     resetOperation?.type === 'system'
-                        ? `Are you sure you want to reset the system prompt for "${resetOperation.displayName}"? This will revert it to the default template and cannot be undone.`
+                        ? t('settings.prompts.reset.system', { name: resetOperation.displayName })
                         : resetOperation?.type === 'human'
-                          ? `Are you sure you want to reset the human prompt for "${resetOperation.displayName}"? This will revert it to the default template and cannot be undone.`
+                          ? t('settings.prompts.reset.human', { name: resetOperation.displayName })
                           : resetOperation?.type === 'all'
-                            ? `Are you sure you want to reset all prompts for "${resetOperation.displayName}"? This will revert both system and human prompts to their default templates and cannot be undone.`
-                            : `Are you sure you want to reset the prompt for "${resetOperation?.displayName}"? This will revert it to the default template and cannot be undone.`
+                            ? t('settings.prompts.reset.all', { name: resetOperation.displayName })
+                            : t('settings.prompts.reset.tool', {
+                                  name: resetOperation?.displayName || t('settings.prompts.reset.fallbackName'),
+                              })
                 }
                 handleConfirm={handleResetPrompt}
                 handleOpenChange={setResetDialogOpen}
                 isOpen={resetDialogOpen}
-                title={`Reset ${resetOperation?.displayName || 'Prompt'}`}
+                title={t('settings.prompts.reset.title', {
+                    name: resetOperation?.displayName || t('settings.prompts.reset.fallbackName'),
+                })}
             />
         </>
     );
 }
 
 function SettingsPromptsHeader() {
+    const { t } = useTranslation();
+
     return (
         <div className="flex items-center justify-between">
-            <p className="text-muted-foreground">Manage system and custom prompt templates</p>
+            <p className="text-muted-foreground">{t('settings.prompts.header')}</p>
         </div>
     );
 }

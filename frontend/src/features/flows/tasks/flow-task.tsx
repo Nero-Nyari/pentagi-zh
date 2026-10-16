@@ -1,11 +1,13 @@
 import { memo, useMemo, useState } from 'react';
 
 import type { TaskFragmentFragment } from '@/graphql/types';
+import type { Translator } from '@/lib/i18n/types';
 
 import Markdown from '@/components/shared/markdown';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { StatusType } from '@/graphql/types';
+import { useTranslation } from '@/hooks/use-translation';
 import { matchesSearchTerm } from '@/lib/text-filter';
 
 import FlowSubtask from './flow-subtask';
@@ -16,23 +18,24 @@ interface FlowTaskProps {
     task: TaskFragmentFragment;
 }
 
-const describeMissingSubtasks = (status: StatusType) => {
+const describeMissingSubtasks = (status: StatusType, t: Translator) => {
     switch (status) {
         case StatusType.Failed: {
-            return 'The task failed before any subtasks were created.';
+            return t('flows.tasks.missing.failed');
         }
 
         case StatusType.Finished: {
-            return 'The task ended before any subtasks were created.';
+            return t('flows.tasks.missing.finished');
         }
 
         default: {
-            return 'Waiting for subtasks to be created...';
+            return t('flows.tasks.missing.waiting');
         }
     }
 };
 
 function FlowTask({ searchValue = '', task }: FlowTaskProps) {
+    const { t } = useTranslation();
     const { id, result, status, subtasks, title } = task;
     const [isDetailsVisible, setIsDetailsVisible] = useState(false);
 
@@ -91,7 +94,7 @@ function FlowTask({ searchValue = '', task }: FlowTaskProps) {
                 <FlowTaskStatusIcon
                     className="bg-background ring-border ring-background relative z-1 -mt-px size-5 rounded-full ring-3"
                     status={status}
-                    tooltip={`Task ID: ${id}`}
+                    tooltip={t('flows.common.taskId', { id })}
                 />
                 <div className="flex flex-1 flex-col gap-2">
                     <div className="font-semibold">
@@ -110,7 +113,11 @@ function FlowTask({ searchValue = '', task }: FlowTaskProps) {
                                 value={progress}
                             />
                             <div className="text-muted-foreground shrink-0 text-xs text-nowrap">
-                                {progress}% completed ({completedSubtasksCount} of {subtasks?.length})
+                                {t('flows.tasks.progress', {
+                                    completed: completedSubtasksCount,
+                                    progress,
+                                    total: subtasks?.length ?? 0,
+                                })}
                             </div>
                         </div>
                     )}
@@ -121,7 +128,7 @@ function FlowTask({ searchValue = '', task }: FlowTaskProps) {
                                 className="cursor-pointer"
                                 onClick={() => setIsDetailsVisible(!isDetailsVisible)}
                             >
-                                {isDetailsVisible ? 'Hide details' : 'Show details'}
+                                {isDetailsVisible ? t('flows.common.hideDetails') : t('flows.common.showDetails')}
                             </div>
                             {isDetailsVisible && (
                                 <Card className="mt-4">
@@ -152,7 +159,7 @@ function FlowTask({ searchValue = '', task }: FlowTaskProps) {
                     ))}
                 </div>
             ) : (
-                <div className="text-muted-foreground mt-2 ml-6 text-xs">{describeMissingSubtasks(status)}</div>
+                <div className="text-muted-foreground mt-2 ml-6 text-xs">{describeMissingSubtasks(status, t)}</div>
             )}
         </div>
     );

@@ -7,6 +7,7 @@ import { RESOURCES_API_PATH } from '@/features/resources/resources-constants';
 import { restResourceEntryToFragment, type RestResourceList } from '@/features/resources/resources-rest';
 import { useResourcesRealtime } from '@/features/resources/use-resources-realtime';
 import { ResourcesDocument } from '@/graphql/types';
+import { useTranslation } from '@/hooks/use-translation';
 import { api, getApiErrorMessage, unwrapApiResponse } from '@/lib/axios';
 import { useUser } from '@/providers/user-provider';
 
@@ -44,6 +45,7 @@ const ResourcesContext = createContext<ResourcesContextValue | undefined>(undefi
  * REST requires (see `restResourceEntryToFragment`).
  */
 export function ResourcesProvider({ children }: ResourcesProviderProps) {
+    const { t } = useTranslation();
     const { authInfo, isAuthenticated } = useUser();
 
     const shouldFetchResources = Boolean(authInfo && authInfo.type !== 'guest' && isAuthenticated());
@@ -73,7 +75,7 @@ export function ResourcesProvider({ children }: ResourcesProviderProps) {
                 const response = await api.get<RestResourceList>(RESOURCES_API_PATH, {
                     params: { recursive: true },
                 });
-                const data = unwrapApiResponse(response);
+                const data = unwrapApiResponse(response, t);
 
                 if (isCancelled) {
                     return;
@@ -100,7 +102,7 @@ export function ResourcesProvider({ children }: ResourcesProviderProps) {
                     return;
                 }
 
-                const message = getApiErrorMessage(caught, 'Failed to load resources');
+                const message = getApiErrorMessage(caught, t('resources.error.fallback'));
 
                 setRestError(new Error(message));
             } finally {
@@ -113,7 +115,7 @@ export function ResourcesProvider({ children }: ResourcesProviderProps) {
         return () => {
             isCancelled = true;
         };
-    }, [apolloClient, refreshTick, shouldFetchResources]);
+    }, [apolloClient, refreshTick, shouldFetchResources, t]);
 
     // Subscriptions are delta-only and the reconnect sweep skips this cache-only slot,
     // so re-hydrate from REST when the socket reconnects after an outage.

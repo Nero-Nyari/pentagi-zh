@@ -1,6 +1,9 @@
 import { Replace } from 'lucide-react';
 
+import type { Translator } from '@/lib/i18n/types';
+
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
+import { useTranslation } from '@/hooks/use-translation';
 
 export interface OverwriteConflict {
     destination: string;
@@ -32,21 +35,19 @@ interface OverwriteDialogProps {
     title?: string;
 }
 
-const buildDefaultDescription = (conflicts: OverwriteConflict[]): string | undefined => {
+const buildDefaultDescription = (conflicts: OverwriteConflict[], t: Translator): string | undefined => {
     const single = conflicts.length === 1 ? conflicts[0] : undefined;
 
     if (single) {
-        return `An item named "${single.destinationName}" already exists at /${single.destination}. Do you want to replace it?`;
+        return t('shared.overwrite.existsSingle', { destination: single.destination, name: single.destinationName });
     }
 
     if (conflicts.length > 1) {
-        return `${conflicts.length} items already exist at the destination. Do you want to replace all of them?`;
+        return t('shared.overwrite.existsBatch', { count: conflicts.length });
     }
 
     return undefined;
 };
-
-const buildDefaultConfirmText = (count: number): string => (count > 1 ? 'Replace all' : 'Replace');
 
 /**
  * Shared "Replace or cancel" confirmation for destructive overwrite flows
@@ -63,15 +64,19 @@ export function OverwriteDialog({
     description,
     onCancel,
     onReplaceAll,
-    title = 'Replace existing item?',
+    title,
 }: OverwriteDialogProps) {
+    const { t } = useTranslation();
+
     return (
         <ConfirmationDialog
-            cancelText="Cancel"
+            cancelText={t('shared.overwrite.cancel')}
             confirmIcon={<Replace />}
-            confirmText={confirmText ?? buildDefaultConfirmText(conflicts.length)}
+            confirmText={
+                confirmText ?? (conflicts.length > 1 ? t('shared.overwrite.replaceAll') : t('shared.overwrite.replace'))
+            }
             confirmVariant="destructive"
-            description={description ?? buildDefaultDescription(conflicts)}
+            description={description ?? buildDefaultDescription(conflicts, t)}
             handleConfirm={async () => {
                 await onReplaceAll();
             }}
@@ -81,7 +86,7 @@ export function OverwriteDialog({
                 }
             }}
             isOpen={conflicts.length > 0}
-            title={title}
+            title={title ?? t('shared.overwrite.title')}
         />
     );
 }

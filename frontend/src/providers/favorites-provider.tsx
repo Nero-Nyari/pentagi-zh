@@ -17,6 +17,7 @@ import {
     SettingsUserDocument,
     SettingsUserUpdatedDocument,
 } from '@/graphql/types';
+import { useTranslation } from '@/hooks/use-translation';
 import { Log } from '@/lib/log';
 import { useUser } from '@/providers/user-provider';
 
@@ -39,6 +40,7 @@ const FavoritesContext = createContext<FavoritesContextValue | undefined>(undefi
 const FAVORITES_STORAGE_KEY = 'favorites';
 
 export function FavoritesProvider({ children }: FavoritesProviderProps) {
+    const { t } = useTranslation();
     const { authInfo, isAuthenticated } = useUser();
 
     const shouldFetchPreferences = Boolean(authInfo && authInfo.type !== 'guest' && isAuthenticated());
@@ -149,15 +151,15 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
                         variables: { flowId: id },
                     });
                 } catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : 'Failed to add favorite';
-                    toast.error('Failed to add to favorites', {
+                    const errorMessage = error instanceof Error ? error.message : t('flows.provider.favorite.addError');
+                    toast.error(t('flows.provider.favorite.addFailed'), {
                         description: errorMessage,
                     });
                     Log.error('Error adding favorite flow:', error);
                 }
             });
         },
-        [addFavoriteFlowMutation, applyOptimisticFavorite],
+        [addFavoriteFlowMutation, applyOptimisticFavorite, t],
     );
 
     const removeFavoriteFlow = useCallback(
@@ -173,15 +175,16 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
                         variables: { flowId: id },
                     });
                 } catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : 'Failed to remove favorite';
-                    toast.error('Failed to remove from favorites', {
+                    const errorMessage =
+                        error instanceof Error ? error.message : t('flows.provider.favorite.removeError');
+                    toast.error(t('flows.provider.favorite.removeFailed'), {
                         description: errorMessage,
                     });
                     Log.error('Error removing favorite flow:', error);
                 }
             });
         },
-        [applyOptimisticFavorite, deleteFavoriteFlowMutation],
+        [applyOptimisticFavorite, deleteFavoriteFlowMutation, t],
     );
 
     const toggleFavoriteFlow = useCallback(

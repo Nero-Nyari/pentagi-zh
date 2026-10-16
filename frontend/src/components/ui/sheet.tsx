@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import * as React from 'react';
 
 import { FocusReturn } from '@/components/ui/dialog';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
@@ -81,6 +82,8 @@ interface SheetContentProps
 }
 
 function SheetContent({ children, className, container, overlay = true, side = 'right', ...props }: SheetContentProps) {
+    const { t } = useTranslation();
+
     return (
         <SheetPortal container={container ?? undefined}>
             {overlay && <SheetOverlay />}
@@ -94,7 +97,7 @@ function SheetContent({ children, className, container, overlay = true, side = '
                     <X className="h-4 w-4" />
                     {/* Not "Close": a sheet with its own footer Close button would
                         produce two identically named controls. */}
-                    <span className="sr-only">Dismiss sheet</span>
+                    <span className="sr-only">{t('ui.sheet.dismiss')}</span>
                 </SheetPrimitive.Close>
                 {children}
             </SheetPrimitive.Content>

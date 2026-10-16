@@ -3,6 +3,7 @@ import { type ChangeEvent, type KeyboardEvent, type Ref, useState } from 'react'
 
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 
 interface InlineEditInputProps {
@@ -68,6 +69,7 @@ export function InlineEditInput({
     onSave,
     placeholder,
 }: InlineEditInputProps) {
+    const { t } = useTranslation();
     const [isBlank, setIsBlank] = useState(() => !defaultValue?.trim());
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -112,14 +114,14 @@ export function InlineEditInput({
                 className="gap-0 pr-2"
             >
                 <InputGroupButton
-                    aria-label="Save"
+                    aria-label={t('shared.inlineEdit.save')}
                     disabled={busy || isBlank}
                     onClick={onSave}
                 >
                     {busy ? <Spinner variant="circle" /> : <Check />}
                 </InputGroupButton>
                 <InputGroupButton
-                    aria-label="Cancel"
+                    aria-label={t('shared.inlineEdit.cancel')}
                     disabled={busy}
                     onClick={onCancel}
                 >

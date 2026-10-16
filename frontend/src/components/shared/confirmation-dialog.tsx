@@ -13,6 +13,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 
 type ConfirmationDialogIconProps = ReactElement<React.SVGProps<SVGSVGElement>>;
@@ -36,30 +37,44 @@ interface ConfirmationDialogProps {
 
 function ConfirmationDialog({
     cancelIcon,
-    cancelText = 'Cancel',
+    cancelText,
     cancelVariant = 'outline',
     confirmIcon = <Trash2 />,
-    confirmText = 'Confirm',
+    confirmText,
     confirmVariant = 'destructive',
     description,
     handleConfirm,
     handleOpenChange,
     isOpen,
-    itemName = 'this',
-    itemType = 'item',
+    itemName,
+    itemType,
     title,
 }: ConfirmationDialogProps) {
+    const { t } = useTranslation();
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // `verb !== 'Confirm'` treats the default confirmText as "no custom verb": a bare
-    // Confirm gets the generic "Confirm Action" title instead of "Confirm <itemType>".
-    const verb = confirmText.trim();
-    const resolvedTitle = title ?? (verb && verb !== 'Confirm' ? `${verb} ${itemType}` : 'Confirm Action');
+    const resolvedCancelText = cancelText ?? t('shared.confirmDialog.cancel');
+    const resolvedConfirmText = confirmText ?? t('shared.confirmDialog.confirm');
+    const resolvedItemName = itemName ?? t('shared.confirmDialog.itemName');
+    const resolvedItemType = itemType ?? t('shared.confirmDialog.itemType');
+
+    // `verb !== defaultConfirm` treats the default confirmText as "no custom verb": a bare
+    // Confirm gets the generic "Confirm Action" title instead of "Confirm <itemType>". Compared
+    // against the translated default so a localized "Confirm" is still recognized as generic.
+    const verb = resolvedConfirmText.trim();
+    const resolvedTitle =
+        title ??
+        (verb && verb !== t('shared.confirmDialog.confirm')
+            ? `${verb} ${resolvedItemType}`
+            : t('shared.confirmDialog.confirmAction'));
 
     const defaultDescription = description || (
         <>
-            Are you sure you want to {verb.toLowerCase() || 'perform this action on'}{' '}
-            <strong className="text-foreground font-semibold">{itemName}</strong> {itemType}?
+            {t('shared.confirmDialog.areYouSurePrefix', {
+                action: verb.toLowerCase() || t('shared.confirmDialog.performAction'),
+            })}{' '}
+            <strong className="text-foreground font-semibold">{resolvedItemName}</strong>{' '}
+            {t('shared.confirmDialog.areYouSureSuffix', { type: resolvedItemType })}
         </>
     );
 
@@ -119,7 +134,7 @@ function ConfirmationDialog({
                         variant={cancelVariant}
                     >
                         {processIcon(cancelIcon)}
-                        {cancelText}
+                        {resolvedCancelText}
                     </Button>
                     <Button
                         disabled={isProcessing}
@@ -129,7 +144,7 @@ function ConfirmationDialog({
                         variant={confirmVariant}
                     >
                         {isProcessing ? <Spinner variant="circle" /> : processIcon(confirmIcon)}
-                        {confirmText}
+                        {resolvedConfirmText}
                     </Button>
                 </DialogFooter>
             </DialogContent>

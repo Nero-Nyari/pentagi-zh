@@ -3,8 +3,8 @@ import { toast } from 'sonner';
 
 import type { FileNode } from '@/components/shared/file-manager';
 
-import { pluralizeItems } from '@/components/shared/file-manager';
 import { buildPathsQuery } from '@/features/resources/resources-utils';
+import { useTranslation } from '@/hooks/use-translation';
 import { api, getApiErrorMessage } from '@/lib/axios';
 
 import { FLOW_FILES_API_PATH } from './flow-files-constants';
@@ -56,6 +56,7 @@ const deleteFlowFilesRequest = (flowId: string, paths: readonly string[]) =>
  * is wired into the Apollo cache and removes the deleted entries automatically.
  */
 export function useFlowFilesDelete({ flowId, onAfterDelete }: UseFlowFilesDeleteParams): UseFlowFilesDeleteResult {
+    const { t } = useTranslation();
     const [fileToDelete, setFileToDelete] = useState<FileNode | null>(null);
 
     const requestDelete = useCallback((file: FileNode) => {
@@ -80,19 +81,21 @@ export function useFlowFilesDelete({ flowId, onAfterDelete }: UseFlowFilesDelete
 
                 if (filesToDelete.length === 1) {
                     const [single] = filesToDelete;
-                    toast.success(single?.isDir ? 'Directory deleted' : 'File deleted');
+                    toast.success(
+                        single?.isDir ? t('flows.files.toast.deleted.directory') : t('flows.files.toast.deleted.file'),
+                    );
                 } else {
-                    toast.success(`${filesToDelete.length} ${pluralizeItems(filesToDelete.length)} deleted`);
+                    toast.success(t('flows.files.toast.deleted.many', { count: filesToDelete.length }));
                 }
 
                 onAfterDelete?.();
             } catch (error) {
-                const description = getApiErrorMessage(error, 'Failed to delete file');
+                const description = getApiErrorMessage(error, t('flows.files.toast.deleteFailed.description'));
 
-                toast.error('Delete failed', { description });
+                toast.error(t('flows.files.toast.deleteFailed'), { description });
             }
         },
-        [flowId, onAfterDelete],
+        [flowId, onAfterDelete, t],
     );
 
     const confirmDelete = useCallback(async () => {

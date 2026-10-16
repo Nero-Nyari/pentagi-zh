@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import * as z from 'zod';
+
+import type { Translator } from '@/lib/i18n/types';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -8,44 +10,50 @@ import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
 import { InputPassword } from '@/components/ui/input-password';
 import { useAppForm } from '@/hooks/use-app-form';
+import { useTranslation } from '@/hooks/use-translation';
 import { api, resolveApiErrorMessage } from '@/lib/axios';
 import { useUser } from '@/providers/user-provider';
 
-const emailChangeFormSchema = z.object({
-    currentPassword: z.string().min(1, { message: 'Current password is required' }),
-    newEmail: z
-        .string()
-        .trim()
-        .toLowerCase()
-        .min(1, { message: 'Email is required' })
-        .email({ message: 'Invalid email address' })
-        .max(50, { message: 'Email must not exceed 50 characters' }),
-});
+// 校验消息随语言变化，因此 schema 由 t 工厂生成，而不是模块级常量。
+const createEmailChangeFormSchema = (t: Translator) =>
+    z.object({
+        currentPassword: z.string().min(1, { message: t('auth.form.errors.currentPasswordRequired') }),
+        newEmail: z
+            .string()
+            .trim()
+            .toLowerCase()
+            .min(1, { message: t('auth.email.change.errors.required') })
+            .email({ message: t('auth.email.change.errors.invalid') })
+            .max(50, { message: t('auth.email.change.errors.maxLength') }),
+    });
 
-const ERROR_BY_CODE: Record<string, string> = {
-    'Users.ChangeEmailCurrentUser.EmailAlreadyExists': 'Email address is already in use',
-    'Users.ChangeEmailCurrentUser.InvalidCurrentPassword': 'Current password is incorrect',
-    'Users.ChangeEmailCurrentUser.InvalidEmail': 'New email does not meet requirements',
-    'Users.NotFound': 'User not found',
-};
+// 后端错误码到文案的映射同样依赖语言，改为按当前翻译器构造。
+const errorByCode = (t: Translator): Record<string, string> => ({
+    'Users.ChangeEmailCurrentUser.EmailAlreadyExists': t('auth.email.change.errors.alreadyInUse'),
+    'Users.ChangeEmailCurrentUser.InvalidCurrentPassword': t('auth.form.errors.currentPasswordIncorrect'),
+    'Users.ChangeEmailCurrentUser.InvalidEmail': t('auth.email.change.errors.invalidEmail'),
+    'Users.NotFound': t('auth.form.errors.userNotFound'),
+});
 
 interface EmailChangeFormProps {
     onCancel?: () => void;
     onSuccess?: () => void;
 }
 
-type EmailChangeFormValues = z.infer<typeof emailChangeFormSchema>;
+type EmailChangeFormValues = z.infer<ReturnType<typeof createEmailChangeFormSchema>>;
 
 export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
+    const { t } = useTranslation();
     const [error, setError] = useState<null | string>(null);
     const { patchUser, refreshAuthInfo } = useUser();
 
+    const formSchema = useMemo(() => createEmailChangeFormSchema(t), [t]);
     const form = useAppForm<EmailChangeFormValues>({
         defaultValues: {
             currentPassword: '',
             newEmail: '',
         },
-        schema: emailChangeFormSchema,
+        schema: formSchema,
     });
 
     const handleSubmit = async (values: EmailChangeFormValues) => {
@@ -58,14 +66,14 @@ export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
             });
 
             form.reset();
-            toast.success('Email successfully updated');
+            toast.success(t('auth.email.change.success'));
 
             patchUser({ mail: values.newEmail });
             await refreshAuthInfo();
 
             onSuccess?.();
         } catch (err: unknown) {
-            setError(resolveApiErrorMessage(err, ERROR_BY_CODE, 'Failed to update email'));
+            setError(resolveApiErrorMessage(err, errorByCode(t), t('auth.email.change.failed')));
         }
     };
 
@@ -83,11 +91,11 @@ export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
                     name="currentPassword"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Current Password</FormLabel>
+                            <FormLabel>{t('auth.form.currentPasswordLabel')}</FormLabel>
                             <FormControl>
                                 <InputPassword
                                     {...field}
-                                    placeholder="Enter your current password"
+                                    placeholder={t('auth.form.currentPasswordPlaceholder')}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -100,11 +108,11 @@ export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
                     name="newEmail"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>New Email</FormLabel>
+                            <FormLabel>{t('auth.email.change.newLabel')}</FormLabel>
                             <FormControl>
                                 <Input
                                     {...field}
-                                    placeholder="Enter your new email address"
+                                    placeholder={t('auth.email.change.newPlaceholder')}
                                     type="email"
                                 />
                             </FormControl>
@@ -123,11 +131,11 @@ export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
                             type="button"
                             variant="outline"
                         >
-                            Cancel
+                            {t('auth.form.cancel')}
                         </Button>
                     )}
                     <FormSubmitButton size="sm">
-                        <span>Update Email</span>
+                        <span>{t('auth.email.change.submit')}</span>
                     </FormSubmitButton>
                 </div>
             </form>

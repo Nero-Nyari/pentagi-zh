@@ -1,44 +1,52 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import * as z from 'zod';
+
+import type { Translator } from '@/lib/i18n/types';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
 import { useAppForm } from '@/hooks/use-app-form';
+import { useTranslation } from '@/hooks/use-translation';
 import { api, resolveApiErrorMessage } from '@/lib/axios';
 import { useUser } from '@/providers/user-provider';
 
-const nameChangeFormSchema = z.object({
-    name: z
-        .string()
-        .trim()
-        .min(1, { message: 'Name is required' })
-        .max(70, { message: 'Name must not exceed 70 characters' }),
-});
+// 校验消息随语言变化，因此 schema 由 t 工厂生成，而不是模块级常量。
+const createNameChangeFormSchema = (t: Translator) =>
+    z.object({
+        name: z
+            .string()
+            .trim()
+            .min(1, { message: t('auth.name.change.errors.required') })
+            .max(70, { message: t('auth.name.change.errors.maxLength') }),
+    });
 
-const ERROR_BY_CODE: Record<string, string> = {
-    'Users.ChangeNameCurrentUser.InvalidName': 'New name does not meet requirements',
-    'Users.NotFound': 'User not found',
-};
+// 后端错误码到文案的映射同样依赖语言，改为按当前翻译器构造。
+const errorByCode = (t: Translator): Record<string, string> => ({
+    'Users.ChangeNameCurrentUser.InvalidName': t('auth.name.change.errors.invalid'),
+    'Users.NotFound': t('auth.form.errors.userNotFound'),
+});
 
 interface NameChangeFormProps {
     onCancel?: () => void;
     onSuccess?: () => void;
 }
 
-type NameChangeFormValues = z.infer<typeof nameChangeFormSchema>;
+type NameChangeFormValues = z.infer<ReturnType<typeof createNameChangeFormSchema>>;
 
 export function NameChangeForm({ onCancel, onSuccess }: NameChangeFormProps) {
+    const { t } = useTranslation();
     const [error, setError] = useState<null | string>(null);
     const { authInfo, patchUser, refreshAuthInfo } = useUser();
 
+    const formSchema = useMemo(() => createNameChangeFormSchema(t), [t]);
     const form = useAppForm<NameChangeFormValues>({
         defaultValues: {
             name: authInfo?.user?.name ?? '',
         },
-        schema: nameChangeFormSchema,
+        schema: formSchema,
     });
 
     const handleSubmit = async (values: NameChangeFormValues) => {
@@ -47,14 +55,14 @@ export function NameChangeForm({ onCancel, onSuccess }: NameChangeFormProps) {
         try {
             await api.put('/user/name', { name: values.name });
 
-            toast.success('Name successfully updated');
+            toast.success(t('auth.name.change.success'));
 
             patchUser({ name: values.name });
             await refreshAuthInfo();
 
             onSuccess?.();
         } catch (err: unknown) {
-            setError(resolveApiErrorMessage(err, ERROR_BY_CODE, 'Failed to update name'));
+            setError(resolveApiErrorMessage(err, errorByCode(t), t('auth.name.change.failed')));
         }
     };
 
@@ -70,11 +78,11 @@ export function NameChangeForm({ onCancel, onSuccess }: NameChangeFormProps) {
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Display name</FormLabel>
+                            <FormLabel>{t('auth.name.change.label')}</FormLabel>
                             <FormControl>
                                 <Input
                                     {...field}
-                                    placeholder="Enter your display name"
+                                    placeholder={t('auth.name.change.placeholder')}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -92,11 +100,11 @@ export function NameChangeForm({ onCancel, onSuccess }: NameChangeFormProps) {
                             type="button"
                             variant="outline"
                         >
-                            Cancel
+                            {t('auth.form.cancel')}
                         </Button>
                     )}
                     <FormSubmitButton size="sm">
-                        <span>Update Name</span>
+                        <span>{t('auth.name.change.submit')}</span>
                     </FormSubmitButton>
                 </div>
             </form>

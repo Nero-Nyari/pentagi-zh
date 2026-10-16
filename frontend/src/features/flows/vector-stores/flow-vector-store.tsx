@@ -2,18 +2,20 @@ import { Copy } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 
 import type { VectorStoreLogFragmentFragment } from '@/graphql/types';
+import type { Translator } from '@/lib/i18n/types';
 
 import Markdown from '@/components/shared/markdown';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import FlowAgentIcon from '@/features/flows/agents/flow-agent-icon';
 import { VectorStoreAction } from '@/graphql/types';
+import { useTranslation } from '@/hooks/use-translation';
 import { copyMessageToClipboard } from '@/lib/clipboard';
 import { matchesSearchTerm } from '@/lib/text-filter';
 import { formatDate } from '@/lib/utils/format';
 
 import FlowVectorStoreActionIcon from './flow-vector-store-action-icon';
 
-const getDescription = (log: VectorStoreLogFragmentFragment) => {
+const getDescription = (log: VectorStoreLogFragmentFragment, t: Translator) => {
     const { action, filter } = log;
     const {
         answer_type: answerType,
@@ -23,32 +25,40 @@ const getDescription = (log: VectorStoreLogFragmentFragment) => {
         tool_name: toolName,
     } = JSON.parse(filter) || {};
 
+    const isStore = action === VectorStoreAction.Store;
     let description = '';
-    const prefix = action === VectorStoreAction.Store ? 'Stored' : 'Retrieved';
-    const preposition = action === VectorStoreAction.Store ? 'in' : 'from';
 
     if (docType) {
         if (docType === 'memory') {
-            description += `${prefix} ${preposition} memory`;
+            description = isStore
+                ? t('flows.vectors.describe.memoryStored')
+                : t('flows.vectors.describe.memoryRetrieved');
         } else {
-            description += `${prefix} ${docType}`;
+            description = isStore
+                ? t('flows.vectors.describe.stored', { docType })
+                : t('flows.vectors.describe.retrieved', { docType });
         }
     }
 
+    // 依次拼接各可选描述片段：首段直接取值，后续片段以空格连接。
+    const append = (part: string) => {
+        description = description ? `${description} ${part}` : part;
+    };
+
     if (codeLang) {
-        description += `${description ? ' on' : 'On'} ${codeLang} language`;
+        append(t('flows.vectors.describe.onLanguage', { lang: codeLang }));
     }
 
     if (toolName) {
-        description += `${description ? ' by' : 'By'} ${toolName} tool`;
+        append(t('flows.vectors.describe.byTool', { tool: toolName }));
     }
 
     if (guideType) {
-        description += `${description ? ' about' : 'About'} ${guideType}`;
+        append(t('flows.vectors.describe.aboutGuide', { guide: guideType }));
     }
 
     if (answerType) {
-        description += `${description ? ' as' : 'As'} a ${answerType}`;
+        append(t('flows.vectors.describe.asAnswer', { answer: answerType }));
     }
 
     return description;
@@ -60,6 +70,7 @@ interface FlowVectorStoreProps {
 }
 
 function FlowVectorStore({ log, searchValue = '' }: FlowVectorStoreProps) {
+    const { t } = useTranslation();
     const { action, createdAt, executor, initiator, query, result, subtaskId, taskId } = log;
 
     const searchChecks = useMemo(() => {
@@ -94,14 +105,17 @@ function FlowVectorStore({ log, searchValue = '' }: FlowVectorStoreProps) {
         }
     }
 
-    const description = getDescription(log);
+    const description = getDescription(log, t);
 
     const handleCopy = useCallback(async () => {
-        await copyMessageToClipboard({
-            message: query,
-            result: result || undefined,
-        });
-    }, [query, result]);
+        await copyMessageToClipboard(
+            {
+                message: query,
+                result: result || undefined,
+            },
+            t,
+        );
+    }, [query, result, t]);
 
     return (
         <div className="flex flex-col items-start">
@@ -127,7 +141,7 @@ function FlowVectorStore({ log, searchValue = '' }: FlowVectorStoreProps) {
                             className="cursor-pointer"
                             onClick={() => setIsDetailsVisible(!isDetailsVisible)}
                         >
-                            {isDetailsVisible ? 'Hide details' : 'Show details'}
+                            {isDetailsVisible ? t('flows.common.hideDetails') : t('flows.common.showDetails')}
                         </div>
                         {isDetailsVisible && (
                             <>
@@ -162,19 +176,21 @@ function FlowVectorStore({ log, searchValue = '' }: FlowVectorStoreProps) {
                             onClick={handleCopy}
                         />
                     </TooltipTrigger>
-                    <TooltipContent>Copy</TooltipContent>
+                    <TooltipContent>{t('flows.common.copy')}</TooltipContent>
                 </Tooltip>
                 <span className="text-muted-foreground/50">{formatDate(new Date(createdAt))}</span>
                 {taskId && (
                     <>
                         <span className="text-muted-foreground/50">|</span>
-                        <span className="text-muted-foreground/50">Task ID: {taskId}</span>
+                        <span className="text-muted-foreground/50">{t('flows.common.taskId', { id: taskId })}</span>
                     </>
                 )}
                 {subtaskId && (
                     <>
                         <span className="text-muted-foreground/50">|</span>
-                        <span className="text-muted-foreground/50">Subtask ID: {subtaskId}</span>
+                        <span className="text-muted-foreground/50">
+                            {t('flows.common.subtaskId', { id: subtaskId })}
+                        </span>
                     </>
                 )}
             </div>

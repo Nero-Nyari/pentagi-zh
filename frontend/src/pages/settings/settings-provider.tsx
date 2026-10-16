@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 import type { AgentConfigInput, AgentsConfigInput, ProviderConfigFragmentFragment } from '@/graphql/types';
+import type { TranslationKey, Translator } from '@/lib/i18n/types';
 
 import {
     AppHeader,
@@ -74,6 +75,10 @@ import {
 } from '@/graphql/types';
 import { useAppForm } from '@/hooks/use-app-form';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { useTranslation } from '@/hooks/use-translation';
+import { agentTypeLabel } from '@/lib/i18n/agent-types';
+import { dictionaries } from '@/lib/i18n/dictionaries';
+import { createTranslator } from '@/lib/i18n/translator';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
@@ -193,6 +198,7 @@ function FormComboboxItem<T extends FieldValues = FieldValues>({
     options,
     placeholder,
 }: FormComboboxItemProps<T>) {
+    const { t } = useTranslation();
     const { field, fieldState } = useController({
         control,
         defaultValue: undefined,
@@ -240,13 +246,15 @@ function FormComboboxItem<T extends FieldValues = FieldValues>({
                             <CommandInput
                                 className="h-9"
                                 onValueChange={setSearch}
-                                placeholder={`Search ${label.toLowerCase()}...`}
+                                placeholder={t('settings.provider.form.search', { label: label.toLowerCase() })}
                                 value={search}
                             />
                             <CommandList>
                                 <CommandEmpty>
                                     <div className="py-2 text-center">
-                                        <p className="text-muted-foreground text-sm">No {label.toLowerCase()} found.</p>
+                                        <p className="text-muted-foreground text-sm">
+                                            {t('settings.provider.form.noResults', { label: label.toLowerCase() })}
+                                        </p>
                                         {search.trim() && allowCustom && (
                                             <Button
                                                 className="mt-2"
@@ -258,7 +266,10 @@ function FormComboboxItem<T extends FieldValues = FieldValues>({
                                                 size="sm"
                                                 variant="ghost"
                                             >
-                                                Use "{search}" as custom {label.toLowerCase()}
+                                                {t('settings.provider.form.useCustom', {
+                                                    label: label.toLowerCase(),
+                                                    search,
+                                                })}
                                             </Button>
                                         )}
                                     </div>
@@ -395,6 +406,7 @@ function FormModelComboboxItem<T extends FieldValues = FieldValues>({
     options,
     placeholder,
 }: FormModelComboboxItemProps<T>) {
+    const { t } = useTranslation();
     const { field, fieldState } = useController({
         control,
         defaultValue: undefined,
@@ -413,7 +425,7 @@ function FormModelComboboxItem<T extends FieldValues = FieldValues>({
         price?: null | { cacheRead: number; cacheWrite: number; input: number; output: number },
     ): string => {
         if (!price || ((!price.input || price.input === 0) && (!price.output || price.output === 0))) {
-            return 'free';
+            return t('settings.provider.form.free');
         }
 
         const formatValue = (value: number): string => {
@@ -467,7 +479,7 @@ function FormModelComboboxItem<T extends FieldValues = FieldValues>({
                         <InputGroupAddon align="inline-end">
                             <PopoverTrigger asChild>
                                 <InputGroupButton
-                                    aria-label={`Open ${label.toLowerCase()} list`}
+                                    aria-label={t('settings.provider.form.openList', { label: label.toLowerCase() })}
                                     disabled={disabled}
                                     size="icon-sm"
                                 >
@@ -484,13 +496,15 @@ function FormModelComboboxItem<T extends FieldValues = FieldValues>({
                             <CommandInput
                                 className="h-9"
                                 onValueChange={setSearch}
-                                placeholder={`Search ${label.toLowerCase()}...`}
+                                placeholder={t('settings.provider.form.search', { label: label.toLowerCase() })}
                                 value={search}
                             />
                             <CommandList>
                                 <CommandEmpty>
                                     <div className="py-2 text-center">
-                                        <p className="text-muted-foreground text-sm">No {label.toLowerCase()} found.</p>
+                                        <p className="text-muted-foreground text-sm">
+                                            {t('settings.provider.form.noResults', { label: label.toLowerCase() })}
+                                        </p>
                                         {search.trim() && allowCustom && (
                                             <Button
                                                 className="mt-2"
@@ -503,7 +517,10 @@ function FormModelComboboxItem<T extends FieldValues = FieldValues>({
                                                 size="sm"
                                                 variant="ghost"
                                             >
-                                                Use "{search}" as custom {label.toLowerCase()}
+                                                {t('settings.provider.form.useCustom', {
+                                                    label: label.toLowerCase(),
+                                                    search,
+                                                })}
                                             </Button>
                                         )}
                                     </div>
@@ -583,26 +600,33 @@ function FormTextareaItem<T extends FieldValues = FieldValues>({
 
 const optionalNumber = z.number().nullable().optional();
 
+// 校验消息随语言切换，因此 schema 由 t 工厂生成；模块级默认值用英文，
+// 供测试与不支持 i18n 的调用方直接使用。
+const englishTranslator: Translator = createTranslator(dictionaries.en);
+
 // Only a JSON object round-trips: extraBody merges into the request body as key/value pairs.
-export const optionalJsonObject = z
-    .string()
-    .optional()
-    .refine(
-        (value) => {
-            if (!value?.trim()) {
-                return true;
-            }
+const createOptionalJsonObject = (t: Translator) =>
+    z
+        .string()
+        .optional()
+        .refine(
+            (value) => {
+                if (!value?.trim()) {
+                    return true;
+                }
 
-            try {
-                const parsed: unknown = JSON.parse(value);
+                try {
+                    const parsed: unknown = JSON.parse(value);
 
-                return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
-            } catch {
-                return false;
-            }
-        },
-        { message: 'Must be a valid JSON object' },
-    );
+                    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
+                } catch {
+                    return false;
+                }
+            },
+            { message: t('settings.provider.validation.extraBodyJson') },
+        );
+
+export const optionalJsonObject = createOptionalJsonObject(englishTranslator);
 
 const requiredString = (message: string) =>
     z
@@ -614,80 +638,97 @@ const requiredString = (message: string) =>
 // Mirrors the server cap in backend/pkg/providers/pconfig/config.go: a lower value
 export const MAX_REASONING_TOKENS = 32768;
 
-export const agentConfigSchema = z
-    .object({
-        extraBody: optionalJsonObject,
-        frequencyPenalty: optionalNumber,
-        json: z.boolean().nullable().optional(),
-        maxLength: optionalNumber,
-        maxTokens: optionalNumber,
-        minLength: optionalNumber,
-        minP: optionalNumber,
-        model: requiredString('Model is required').pipe(
-            z.string().refine((value) => value.trim().length > 0, 'Model is required'),
-        ),
-        n: optionalNumber,
-        presencePenalty: optionalNumber,
-        price: z
-            .object({
-                cacheRead: optionalNumber,
-                cacheWrite: optionalNumber,
-                input: optionalNumber,
-                output: optionalNumber,
-            })
-            .nullable()
-            .optional(),
-        reasoning: z
-            .object({
-                effort: z.string().nullable().optional(),
-                maxTokens: optionalNumber,
-                mode: z.string().nullable().optional(),
-            })
-            .nullable()
-            .optional(),
-        repetitionPenalty: optionalNumber,
-        responseMimeType: z.string().nullable().optional(),
-        temperature: optionalNumber,
-        topK: optionalNumber,
-        topP: optionalNumber,
-    })
-    .refine((data) => data.minLength == null || data.maxLength == null || data.minLength <= data.maxLength, {
-        message: 'Min length must not exceed max length',
-        path: ['minLength'],
-    })
-    .refine((data) => data.reasoning?.maxTokens == null || data.reasoning.maxTokens <= MAX_REASONING_TOKENS, {
-        message: `Maximum ${MAX_REASONING_TOKENS} tokens`,
-        path: ['reasoning', 'maxTokens'],
-    })
-    .refine(
-        (data) =>
-            data.reasoning?.mode !== ReasoningMode.Budget ||
-            (data.reasoning.maxTokens != null && data.reasoning.maxTokens > 0),
-        {
-            message: 'Budget mode requires a token budget',
+const createAgentConfigSchema = (t: Translator) =>
+    z
+        .object({
+            extraBody: createOptionalJsonObject(t),
+            frequencyPenalty: optionalNumber,
+            json: z.boolean().nullable().optional(),
+            maxLength: optionalNumber,
+            maxTokens: optionalNumber,
+            minLength: optionalNumber,
+            minP: optionalNumber,
+            model: requiredString(t('settings.provider.validation.modelRequired')).pipe(
+                z.string().refine((value) => value.trim().length > 0, t('settings.provider.validation.modelRequired')),
+            ),
+            n: optionalNumber,
+            presencePenalty: optionalNumber,
+            price: z
+                .object({
+                    cacheRead: optionalNumber,
+                    cacheWrite: optionalNumber,
+                    input: optionalNumber,
+                    output: optionalNumber,
+                })
+                .nullable()
+                .optional(),
+            reasoning: z
+                .object({
+                    effort: z.string().nullable().optional(),
+                    maxTokens: optionalNumber,
+                    mode: z.string().nullable().optional(),
+                })
+                .nullable()
+                .optional(),
+            repetitionPenalty: optionalNumber,
+            responseMimeType: z.string().nullable().optional(),
+            temperature: optionalNumber,
+            topK: optionalNumber,
+            topP: optionalNumber,
+        })
+        .refine((data) => data.minLength == null || data.maxLength == null || data.minLength <= data.maxLength, {
+            message: t('settings.provider.validation.minLengthExceedsMax'),
+            path: ['minLength'],
+        })
+        .refine((data) => data.reasoning?.maxTokens == null || data.reasoning.maxTokens <= MAX_REASONING_TOKENS, {
+            message: t('settings.provider.validation.reasoningMaxTokens', { count: MAX_REASONING_TOKENS }),
             path: ['reasoning', 'maxTokens'],
-        },
-    )
-    .optional();
+        })
+        .refine(
+            (data) =>
+                data.reasoning?.mode !== ReasoningMode.Budget ||
+                (data.reasoning.maxTokens != null && data.reasoning.maxTokens > 0),
+            {
+                message: t('settings.provider.validation.budgetRequiresTokens'),
+                path: ['reasoning', 'maxTokens'],
+            },
+        )
+        .optional();
 
-const formSchema = z.object({
-    agents: z.record(z.string(), agentConfigSchema).optional(),
-    name: requiredString('Provider name is required').pipe(
-        z
-            .string()
-            .refine((value) => value.trim().length > 0, 'Provider name is required')
-            .refine((value) => [...value.trim()].length <= 50, 'Maximum 50 characters allowed'),
-    ),
-    type: requiredString('Provider type is required'),
-});
+export const agentConfigSchema = createAgentConfigSchema(englishTranslator);
+
+const createFormSchema = (t: Translator) =>
+    z.object({
+        agents: z.record(z.string(), createAgentConfigSchema(t)).optional(),
+        name: requiredString(t('settings.provider.validation.nameRequired')).pipe(
+            z
+                .string()
+                .refine((value) => value.trim().length > 0, t('settings.provider.validation.nameRequired'))
+                .refine((value) => [...value.trim()].length <= 50, t('settings.provider.validation.nameMax')),
+        ),
+        type: requiredString(t('settings.provider.validation.typeRequired')),
+    });
 
 type FormAgents = FormInput['agents'];
 
-type FormData = z.output<typeof formSchema>;
+type FormData = z.output<ReturnType<typeof createFormSchema>>;
 
-type FormInput = z.input<typeof formSchema>;
+type FormInput = z.input<ReturnType<typeof createFormSchema>>;
 
-const getName = (key: string): string => key.replaceAll(/([A-Z])/g, ' $1').replace(/^./, (item) => item.toUpperCase());
+/**
+ * Display name for an agent key. Roles the API defines come from the
+ * dictionary; anything else falls back to splitting the camelCase, so an
+ * unfamiliar key still renders something readable instead of an identifier.
+ */
+const getName = (key: string, t: Translator): string => {
+    const label = agentTypeLabel(key);
+
+    if (label) {
+        return t(label);
+    }
+
+    return key.replaceAll(/([A-Z])/g, ' $1').replace(/^./, (item) => item.toUpperCase());
+};
 
 const getReasoningEffort = (effort: null | string | undefined): null | ReasoningEffort => {
     if (!effort) {
@@ -754,13 +795,14 @@ const isNonReasoningOption = (option: ModelOption | undefined): boolean =>
 const refusesLevel = (agentKey: string, capability: ModelOption['reasoning'] | undefined): boolean =>
     capability?.rejectsEffortWithTools === true && !agentsCallingWithoutTools.has(agentKey);
 
-const reasoningEffortLabel: Record<ReasoningEffort, string> = {
-    [ReasoningEffort.High]: 'High',
-    [ReasoningEffort.Low]: 'Low',
-    [ReasoningEffort.Max]: 'Max',
-    [ReasoningEffort.Medium]: 'Medium',
-    [ReasoningEffort.Minimal]: 'Minimal',
-    [ReasoningEffort.Xhigh]: 'Extra High',
+// 推理强度文案随语言切换，因此这里只存键，渲染时再 t(...)。
+const reasoningEffortLabelKey: Record<ReasoningEffort, TranslationKey> = {
+    [ReasoningEffort.High]: 'settings.provider.effort.high',
+    [ReasoningEffort.Low]: 'settings.provider.effort.low',
+    [ReasoningEffort.Max]: 'settings.provider.effort.max',
+    [ReasoningEffort.Medium]: 'settings.provider.effort.medium',
+    [ReasoningEffort.Minimal]: 'settings.provider.effort.minimal',
+    [ReasoningEffort.Xhigh]: 'settings.provider.effort.xhigh',
 };
 
 const isJsonObject = (value: unknown): value is Record<string, unknown> =>
@@ -802,15 +844,20 @@ function MaxTokensField({
     isLoading: boolean;
     models: ModelOption[];
 }) {
+    const { t } = useTranslation();
     const selectedModel = useWatch({ control, name: `agents.${agentKey}.model` });
     const ceiling = models.find((model) => model.name === selectedModel)?.maxOutputTokens ?? null;
 
     return (
         <FormInputNumberItem
             control={control}
-            description={ceiling == null ? undefined : `Model ceiling: ${ceiling.toLocaleString('en-US')} tokens`}
+            description={
+                ceiling == null
+                    ? undefined
+                    : t('settings.provider.field.maxTokens.ceiling', { count: ceiling.toLocaleString('en-US') })
+            }
             disabled={isLoading}
-            label="Max Tokens"
+            label={t('settings.provider.field.maxTokens')}
             max={ceiling == null ? undefined : String(ceiling)}
             min="1"
             name={`agents.${agentKey}.maxTokens`}
@@ -834,6 +881,7 @@ function ReasoningFields({
     models: ModelOption[];
     setValue: UseFormSetValue<FormInput>;
 }) {
+    const { t } = useTranslation();
     const selectedModel = useWatch({ control, name: `agents.${agentKey}.model` });
     const reasoningMode = useWatch({ control, name: `agents.${agentKey}.reasoning.mode` });
     const reasoningEffort = useWatch({ control, name: `agents.${agentKey}.reasoning.effort` });
@@ -923,9 +971,9 @@ function ReasoningFields({
         savedReasoning?.mode === ReasoningMode.Off
             ? null
             : savedEffort != null
-              ? `Reasoning Effort was ${reasoningEffortLabel[savedEffort]}`
+              ? t('settings.provider.reasoning.savedEffort', { level: t(reasoningEffortLabelKey[savedEffort]) })
               : savedReasoning?.maxTokens != null
-                ? `Reasoning Max Tokens was ${savedReasoning.maxTokens}`
+                ? t('settings.provider.reasoning.savedMaxTokens', { count: savedReasoning.maxTokens })
                 : null;
     const droppedLevel = isLevelRefused && reasoningEffort == null && reasoningMaxTokens == null ? savedLevel : null;
     const droppedBudget =
@@ -936,15 +984,19 @@ function ReasoningFields({
     return (
         <div className="col-span-full p-px">
             <div className="mt-6 flex flex-col gap-4">
-                <h4 className="text-sm font-medium">Reasoning Configuration</h4>
+                <h4 className="text-sm font-medium">{t('settings.provider.reasoning.title')}</h4>
                 {isSavedOffDropped && (
                     <p
                         className="text-muted-foreground text-sm"
                         role="status"
                     >
                         {isNonReasoning
-                            ? `Reasoning Mode was Off, but ${selectedModel} does not reason, so it was reset. Save to keep the change.`
-                            : `Reasoning Mode was Off, which ${selectedModel} cannot disable, so it was reset. Save to keep the change.`}
+                            ? t('settings.provider.reasoning.savedOffDropped.nonReasoning', {
+                                  model: selectedModel ?? '',
+                              })
+                            : t('settings.provider.reasoning.savedOffDropped.cannotDisable', {
+                                  model: selectedModel ?? '',
+                              })}
                     </p>
                 )}
                 {droppedLevel && (
@@ -952,7 +1004,10 @@ function ReasoningFields({
                         className="text-muted-foreground text-sm"
                         role="status"
                     >
-                        {`${droppedLevel}, which ${selectedModel} refuses on requests with function tools, so it was reset. Save to keep the change.`}
+                        {t('settings.provider.reasoning.droppedEffort', {
+                            level: droppedLevel,
+                            model: selectedModel ?? '',
+                        })}
                     </p>
                 )}
                 {droppedBudget != null && (
@@ -960,12 +1015,15 @@ function ReasoningFields({
                         className="text-muted-foreground text-sm"
                         role="status"
                     >
-                        {`Reasoning Max Tokens was ${droppedBudget}, which ${selectedModel} does not take, so it was reset. Save to keep the change.`}
+                        {t('settings.provider.reasoning.droppedBudget', {
+                            count: droppedBudget,
+                            model: selectedModel ?? '',
+                        })}
                     </p>
                 )}
                 {isNonReasoning && (
                     <p className="text-muted-foreground text-sm">
-                        {`${selectedModel} does not reason, so it has no reasoning settings.`}
+                        {t('settings.provider.reasoning.nonReasoning', { model: selectedModel ?? '' })}
                     </p>
                 )}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -975,7 +1033,7 @@ function ReasoningFields({
                             name={`agents.${agentKey}.reasoning.mode`}
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Reasoning Mode</FormLabel>
+                                    <FormLabel>{t('settings.provider.reasoning.mode.label')}</FormLabel>
                                     <Select
                                         disabled={isLoading || (isAdaptiveOnly && !canDisable)}
                                         onValueChange={(value) => {
@@ -990,32 +1048,48 @@ function ReasoningFields({
                                     >
                                         <FormControl>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Select reasoning mode" />
+                                                <SelectValue
+                                                    placeholder={t('settings.provider.reasoning.mode.placeholder')}
+                                                />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {!isAdaptiveOnly && <SelectItem value="none">Not selected</SelectItem>}
+                                            {!isAdaptiveOnly && (
+                                                <SelectItem value="none">
+                                                    {t('settings.provider.reasoning.mode.none')}
+                                                </SelectItem>
+                                            )}
                                             {supportsAdaptive && (
-                                                <SelectItem value={ReasoningMode.Adaptive}>Adaptive</SelectItem>
+                                                <SelectItem value={ReasoningMode.Adaptive}>
+                                                    {t('settings.provider.reasoning.mode.adaptive')}
+                                                </SelectItem>
                                             )}
                                             {isBudgetOffered && (
-                                                <SelectItem value={ReasoningMode.Budget}>Budget</SelectItem>
+                                                <SelectItem value={ReasoningMode.Budget}>
+                                                    {t('settings.provider.reasoning.mode.budget')}
+                                                </SelectItem>
                                             )}
                                             {canDisable && (
-                                                <SelectItem value={ReasoningMode.Off}>Off (no thinking)</SelectItem>
+                                                <SelectItem value={ReasoningMode.Off}>
+                                                    {t('settings.provider.reasoning.mode.off')}
+                                                </SelectItem>
                                             )}
                                         </SelectContent>
                                     </Select>
                                     <FormDescription>
                                         {pinnedThinking
-                                            ? `Extra Body sets "${pinnedThinking}" for this agent, which overwrites this choice in the request.`
+                                            ? t('settings.provider.reasoning.mode.pinnedThinking', {
+                                                  key: pinnedThinking,
+                                              })
                                             : isLevelRefused
-                                              ? `${selectedModel} refuses a reasoning effort or budget on requests with function tools, which this agent sends: leave the mode unset or choose Off.`
+                                              ? t('settings.provider.reasoning.mode.refused', {
+                                                    model: selectedModel ?? '',
+                                                })
                                               : isAdaptiveOnly
                                                 ? canDisable
-                                                    ? 'This model thinks adaptively; choose Off to disable thinking.'
-                                                    : 'This model supports only adaptive thinking and cannot be disabled.'
-                                                : 'Adaptive lets the model decide how much to think; budget uses a fixed token budget; off disables thinking.'}
+                                                    ? t('settings.provider.reasoning.mode.adaptiveOnly.enable')
+                                                    : t('settings.provider.reasoning.mode.adaptiveOnly.noDisable')
+                                                : t('settings.provider.reasoning.mode.description')}
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
@@ -1029,7 +1103,7 @@ function ReasoningFields({
                             name={`agents.${agentKey}.reasoning.effort`}
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Reasoning Effort</FormLabel>
+                                    <FormLabel>{t('settings.provider.reasoning.effort.label')}</FormLabel>
                                     <Select
                                         disabled={isLoading || isOff}
                                         onValueChange={(value) => {
@@ -1058,17 +1132,21 @@ function ReasoningFields({
                                     >
                                         <FormControl>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Select effort level (optional)" />
+                                                <SelectValue
+                                                    placeholder={t('settings.provider.reasoning.effort.placeholder')}
+                                                />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="none">Not selected</SelectItem>
+                                            <SelectItem value="none">
+                                                {t('settings.provider.reasoning.effort.none')}
+                                            </SelectItem>
                                             {allowedEfforts.map((effort) => (
                                                 <SelectItem
                                                     key={effort}
                                                     value={effort}
                                                 >
-                                                    {reasoningEffortLabel[effort]}
+                                                    {t(reasoningEffortLabelKey[effort])}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -1083,7 +1161,7 @@ function ReasoningFields({
                         <FormInputNumberItem
                             control={control}
                             disabled={isLoading || shownMode !== ReasoningMode.Budget}
-                            label="Reasoning Max Tokens"
+                            label={t('settings.provider.reasoning.maxTokens.label')}
                             min="1"
                             name={`agents.${agentKey}.reasoning.maxTokens`}
                             placeholder="1000"
@@ -1204,6 +1282,8 @@ interface TestResultsDialogProps {
 }
 
 function TestResultsDialog({ handleOpenChange, isOpen, results }: TestResultsDialogProps) {
+    const { t } = useTranslation();
+
     if (!results) {
         return null;
     }
@@ -1234,7 +1314,7 @@ function TestResultsDialog({ handleOpenChange, isOpen, results }: TestResultsDia
                     className="shrink-0"
                     variant="green"
                 >
-                    Success
+                    {t('settings.provider.test.status.success')}
                 </Badge>
             );
         }
@@ -1245,7 +1325,7 @@ function TestResultsDialog({ handleOpenChange, isOpen, results }: TestResultsDia
                     className="shrink-0"
                     variant="destructive"
                 >
-                    Failed
+                    {t('settings.provider.test.status.failed')}
                 </Badge>
             );
         }
@@ -1255,7 +1335,7 @@ function TestResultsDialog({ handleOpenChange, isOpen, results }: TestResultsDia
                 className="shrink-0"
                 variant="secondary"
             >
-                Unknown
+                {t('settings.provider.test.status.unknown')}
             </Badge>
         );
     };
@@ -1267,7 +1347,7 @@ function TestResultsDialog({ handleOpenChange, isOpen, results }: TestResultsDia
         >
             <DialogContent className="flex max-h-[80vh] flex-col sm:max-w-3xl">
                 <DialogHeader className="shrink-0">
-                    <DialogTitle>Provider Test Results</DialogTitle>
+                    <DialogTitle>{t('settings.provider.test.title')}</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-1 flex-col overflow-y-auto">
                     <Accordion
@@ -1288,7 +1368,7 @@ function TestResultsDialog({ handleOpenChange, isOpen, results }: TestResultsDia
                                     <AccordionTrigger className="group text-left hover:no-underline">
                                         <div className="mr-3 flex w-full items-center justify-between gap-3">
                                             <span className="font-semibold group-hover:underline">
-                                                {getName(agentType)}
+                                                {getName(agentType, t)}
                                             </span>
                                             <Badge
                                                 className="shrink-0"
@@ -1296,7 +1376,10 @@ function TestResultsDialog({ handleOpenChange, isOpen, results }: TestResultsDia
                                                     isNonePassed ? 'destructive' : isAllPassed ? 'green' : 'secondary'
                                                 }
                                             >
-                                                {successTestsCount}/{testsCount} passed
+                                                {t('settings.provider.test.passed', {
+                                                    passed: successTestsCount,
+                                                    total: testsCount,
+                                                })}
                                             </Badge>
                                         </div>
                                     </AccordionTrigger>
@@ -1329,16 +1412,28 @@ function TestResultsDialog({ handleOpenChange, isOpen, results }: TestResultsDia
                                                         <div className="mt-2 flex flex-wrap gap-1.5">
                                                             {test.reasoning !== undefined && (
                                                                 <Badge variant="outline">
-                                                                    Reasoning: {test.reasoning ? 'Yes' : 'No'}
+                                                                    {t('settings.provider.test.reasoning', {
+                                                                        value: test.reasoning
+                                                                            ? t('settings.provider.test.yes')
+                                                                            : t('settings.provider.test.no'),
+                                                                    })}
                                                                 </Badge>
                                                             )}
                                                             {test.streaming !== undefined && (
                                                                 <Badge variant="outline">
-                                                                    Streaming: {test.streaming ? 'Yes' : 'No'}
+                                                                    {t('settings.provider.test.streaming', {
+                                                                        value: test.streaming
+                                                                            ? t('settings.provider.test.yes')
+                                                                            : t('settings.provider.test.no'),
+                                                                    })}
                                                                 </Badge>
                                                             )}
                                                             {Boolean(test.latency) && (
-                                                                <Badge variant="outline">{test.latency} ms</Badge>
+                                                                <Badge variant="outline">
+                                                                    {t('settings.provider.test.latency', {
+                                                                        ms: test.latency ?? 0,
+                                                                    })}
+                                                                </Badge>
                                                             )}
                                                         </div>
                                                     )}
@@ -1353,7 +1448,7 @@ function TestResultsDialog({ handleOpenChange, isOpen, results }: TestResultsDia
                                             ))}
                                             {tests.length === 0 && (
                                                 <div className="text-muted-foreground py-4 text-center text-sm">
-                                                    No tests available for this agent
+                                                    {t('settings.provider.test.noTests')}
                                                 </div>
                                             )}
                                         </div>
@@ -1406,22 +1501,24 @@ interface DeleteProviderDialogProps extends Pick<
 
 // Don't hoist this useWatch to the parent — a name keystroke would re-render the whole form.
 function DeleteProviderDialog({ control, handleConfirm, handleOpenChange, isOpen }: DeleteProviderDialogProps) {
+    const { t } = useTranslation();
     const providerName = useWatch({ control, name: 'name' });
 
     return (
         <ConfirmationDialog
-            cancelText="Cancel"
-            confirmText="Delete"
+            cancelText={t('shared.confirmDialog.cancel')}
+            confirmText={t('settings.provider.action.delete')}
             handleConfirm={handleConfirm}
             handleOpenChange={handleOpenChange}
             isOpen={isOpen}
             itemName={providerName}
-            itemType="provider"
+            itemType={t('settings.provider.delete.itemType')}
         />
     );
 }
 
 function SettingsProvider() {
+    const { t } = useTranslation();
     const { providerId } = useParams<{ providerId: string }>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -1441,6 +1538,8 @@ function SettingsProvider() {
     const isLoading = isCreateLoading || isUpdateLoading || isDeleteLoading;
     const { isDesktop } = useBreakpoint();
 
+    const localizedFormSchema = useMemo(() => createFormSchema(t), [t]);
+
     const form = useAppForm<FormInput, unknown, FormData>({
         defaultValues: {
             agents: {},
@@ -1451,7 +1550,7 @@ function SettingsProvider() {
         // replaceWithIncoming gives a fresh `data`); without this a background refetch landing
         // mid-edit silently wipes the unsaved form.
         resetOptions: { keepDirtyValues: true },
-        schema: formSchema,
+        schema: localizedFormSchema,
     });
 
     const { control, getValues, handleSubmit: handleFormSubmit, reset, setValue, trigger, watch } = form;
@@ -1622,7 +1721,7 @@ function SettingsProvider() {
             // unknown or disabled type would otherwise create a dead provider or dump a raw
             // zod error on submit. Bounce it to the list. (Clone-by-id is gated separately below.)
             if (!queryId && queryType && !providers.enabled[queryType as keyof typeof providers.enabled]) {
-                toast.error(`Provider type "${queryType}" is not available`);
+                toast.error(t('settings.provider.error.typeUnavailable', { type: queryType }));
                 navigate(routes.settings.providers, { replace: true });
 
                 return;
@@ -1637,7 +1736,7 @@ function SettingsProvider() {
                     // Cloning a provider whose type is now disabled would only make
                     // another dead one — gate it the same as the ?type= path.
                     if (sourceType && !providers.enabled[sourceType as keyof typeof providers.enabled]) {
-                        toast.error(`Provider type "${sourceType}" is not available`);
+                        toast.error(t('settings.provider.error.typeUnavailable', { type: sourceType }));
                         navigate(routes.settings.providers, { replace: true });
 
                         return;
@@ -1720,16 +1819,16 @@ function SettingsProvider() {
             return true;
         } catch (error) {
             console.error('Submit error:', error);
-            setSubmitError(error instanceof Error ? error.message : 'An error occurred while saving');
+            setSubmitError(error instanceof Error ? error.message : t('settings.provider.error.save'));
 
             return false;
         }
     };
 
     const reportInvalid = (errors: FieldErrors<FormInput>) => {
-        setSubmitError(
-            `Please fix the following validation errors:\n\n${formatFormErrors(errors as Record<string, unknown>)}`,
-        );
+        const details = formatFormErrors(errors as Record<string, unknown>);
+
+        setSubmitError(`${t('settings.provider.error.validationPrefix')}\n\n${details}`);
     };
 
     const validateAndReport = async (): Promise<boolean> => {
@@ -1821,7 +1920,7 @@ function SettingsProvider() {
             navigate(routes.settings.providers);
         } catch (error) {
             console.error('Delete error:', error);
-            setSubmitError(error instanceof Error ? error.message : 'An error occurred while deleting');
+            setSubmitError(error instanceof Error ? error.message : t('settings.provider.error.delete'));
         }
     };
 
@@ -1848,7 +1947,7 @@ function SettingsProvider() {
             setIsTestDialogOpen(true);
         } catch (error) {
             console.error('Test error:', error);
-            setSubmitError(error instanceof Error ? error.message : 'An error occurred while testing');
+            setSubmitError(error instanceof Error ? error.message : t('settings.provider.error.test'));
         }
     };
 
@@ -1883,7 +1982,7 @@ function SettingsProvider() {
             return;
         } catch (error) {
             console.error('Test error:', error);
-            setSubmitError(error instanceof Error ? error.message : 'An error occurred while testing');
+            setSubmitError(error instanceof Error ? error.message : t('settings.provider.error.test'));
             setCurrentAgentKey(null);
         }
     };
@@ -1894,14 +1993,14 @@ function SettingsProvider() {
                 <AppHeader>
                     <AppHeaderContent>
                         <AppHeaderTitle icon={<Plug className="size-4 shrink-0" />}>
-                            {isNew ? 'Create Provider' : 'Edit Provider'}
+                            {isNew ? t('settings.provider.createTitle') : t('settings.provider.editTitle')}
                         </AppHeaderTitle>
                     </AppHeaderContent>
                 </AppHeader>
                 <div className="flex flex-1 items-center justify-center p-4">
                     <LoadingState
-                        description="Please wait while we fetch provider configuration"
-                        title="Loading provider data..."
+                        description={t('settings.provider.loading.description')}
+                        title={t('settings.provider.loading.title')}
                     />
                 </div>
             </>
@@ -1914,7 +2013,7 @@ function SettingsProvider() {
                 <AppHeader>
                     <AppHeaderContent>
                         <AppHeaderTitle icon={<Plug className="size-4 shrink-0" />}>
-                            {isNew ? 'Create Provider' : 'Edit Provider'}
+                            {isNew ? t('settings.provider.createTitle') : t('settings.provider.editTitle')}
                         </AppHeaderTitle>
                     </AppHeaderContent>
                 </AppHeader>
@@ -1922,7 +2021,7 @@ function SettingsProvider() {
                     <ErrorState
                         message={error.message}
                         onRetry={refetch}
-                        title="Error loading provider data"
+                        title={t('settings.provider.error.title')}
                     />
                 </div>
             </>
@@ -1936,30 +2035,32 @@ function SettingsProvider() {
     const metaFields = (
         <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2 text-center">
-                <h2 className="text-2xl font-semibold">{isNew ? 'Create a new provider' : 'Edit provider'}</h2>
+                <h2 className="text-2xl font-semibold">
+                    {isNew ? t('settings.provider.form.createHeading') : t('settings.provider.form.editHeading')}
+                </h2>
                 <p className="text-muted-foreground">
-                    {isNew ? 'Configure a new language model provider' : 'Update provider settings and configuration'}
+                    {isNew ? t('settings.provider.form.createSubtitle') : t('settings.provider.form.editSubtitle')}
                 </p>
             </div>
 
             <FormComboboxItem
                 allowCustom={false}
                 control={control}
-                description="The type of language model provider"
+                description={t('settings.provider.field.type.description')}
                 disabled={isLoading || !!selectedType}
-                label="Type"
+                label={t('settings.provider.field.type')}
                 name="type"
                 options={providers}
-                placeholder="Select provider"
+                placeholder={t('settings.provider.field.type.placeholder')}
             />
 
             <FormInputStringItem
                 control={control}
-                description="A unique name for your provider configuration"
+                description={t('settings.provider.field.name.description')}
                 disabled={isLoading}
-                label="Name"
+                label={t('settings.provider.field.name')}
                 name="name"
-                placeholder="Enter provider name"
+                placeholder={t('settings.provider.field.name.placeholder')}
             />
         </div>
     );
@@ -1976,7 +2077,7 @@ function SettingsProvider() {
                 >
                     <AccordionTrigger className="group text-left hover:no-underline">
                         <div className="flex w-full items-center justify-between gap-2">
-                            <span className="group-hover:underline">{getName(agentKey)}</span>
+                            <span className="group-hover:underline">{getName(agentKey, t)}</span>
                             <Button
                                 asChild
                                 className={cn(
@@ -2018,7 +2119,9 @@ function SettingsProvider() {
                                         <Play />
                                     )}
                                     <span className="no-underline! hover:no-underline!">
-                                        {isAgentTestLoading && currentAgentKey === agentKey ? 'Testing...' : 'Test'}
+                                        {isAgentTestLoading && currentAgentKey === agentKey
+                                            ? t('settings.provider.agent.testing')
+                                            : t('settings.provider.agent.test')}
                                     </span>
                                 </span>
                             </Button>
@@ -2029,7 +2132,7 @@ function SettingsProvider() {
                             <FormModelComboboxItem
                                 control={control}
                                 disabled={isLoading}
-                                label="Model"
+                                label={t('settings.provider.field.model')}
                                 name={`agents.${agentKey}.model`}
                                 onOptionSelect={(option) => {
                                     const price = option?.price;
@@ -2063,13 +2166,13 @@ function SettingsProvider() {
                                     }
                                 }}
                                 options={availableModels}
-                                placeholder="Select or enter model name"
+                                placeholder={t('settings.provider.field.model.placeholder')}
                             />
 
                             <FormInputNumberItem
                                 control={control}
                                 disabled={isLoading}
-                                label="Temperature"
+                                label={t('settings.provider.field.temperature')}
                                 max="2"
                                 min="0"
                                 name={`agents.${agentKey}.temperature`}
@@ -2087,7 +2190,7 @@ function SettingsProvider() {
                             <FormInputNumberItem
                                 control={control}
                                 disabled={isLoading}
-                                label="Top P"
+                                label={t('settings.provider.field.topP')}
                                 max="1"
                                 min="0"
                                 name={`agents.${agentKey}.topP`}
@@ -2098,7 +2201,7 @@ function SettingsProvider() {
                             <FormInputNumberItem
                                 control={control}
                                 disabled={isLoading}
-                                label="Top K"
+                                label={t('settings.provider.field.topK')}
                                 min="1"
                                 name={`agents.${agentKey}.topK`}
                                 placeholder="40"
@@ -2108,7 +2211,7 @@ function SettingsProvider() {
                             <FormInputNumberItem
                                 control={control}
                                 disabled={isLoading}
-                                label="Min Length"
+                                label={t('settings.provider.field.minLength')}
                                 min="0"
                                 name={`agents.${agentKey}.minLength`}
                                 placeholder="0"
@@ -2118,7 +2221,7 @@ function SettingsProvider() {
                             <FormInputNumberItem
                                 control={control}
                                 disabled={isLoading}
-                                label="Max Length"
+                                label={t('settings.provider.field.maxLength')}
                                 min="1"
                                 name={`agents.${agentKey}.maxLength`}
                                 placeholder="2000"
@@ -2128,7 +2231,7 @@ function SettingsProvider() {
                             <FormInputNumberItem
                                 control={control}
                                 disabled={isLoading}
-                                label="Repetition Penalty"
+                                label={t('settings.provider.field.repetitionPenalty')}
                                 max="2"
                                 min="0"
                                 name={`agents.${agentKey}.repetitionPenalty`}
@@ -2139,7 +2242,7 @@ function SettingsProvider() {
                             <FormInputNumberItem
                                 control={control}
                                 disabled={isLoading}
-                                label="Frequency Penalty"
+                                label={t('settings.provider.field.frequencyPenalty')}
                                 max="2"
                                 min="0"
                                 name={`agents.${agentKey}.frequencyPenalty`}
@@ -2150,7 +2253,7 @@ function SettingsProvider() {
                             <FormInputNumberItem
                                 control={control}
                                 disabled={isLoading}
-                                label="Presence Penalty"
+                                label={t('settings.provider.field.presencePenalty')}
                                 max="2"
                                 min="0"
                                 name={`agents.${agentKey}.presencePenalty`}
@@ -2169,13 +2272,13 @@ function SettingsProvider() {
 
                         <div className="col-span-full p-px">
                             <div className="mt-6 flex flex-col gap-4">
-                                <h4 className="text-sm font-medium">Price Configuration</h4>
+                                <h4 className="text-sm font-medium">{t('settings.provider.price.title')}</h4>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <FormInputNumberItem
                                         control={control}
-                                        description="Price per 1M input tokens"
+                                        description={t('settings.provider.field.inputPrice.description')}
                                         disabled={isLoading}
-                                        label="Input Price"
+                                        label={t('settings.provider.field.inputPrice')}
                                         min="0"
                                         name={`agents.${agentKey}.price.input`}
                                         placeholder="0.001"
@@ -2184,9 +2287,9 @@ function SettingsProvider() {
 
                                     <FormInputNumberItem
                                         control={control}
-                                        description="Price per 1M output tokens"
+                                        description={t('settings.provider.field.outputPrice.description')}
                                         disabled={isLoading}
-                                        label="Output Price"
+                                        label={t('settings.provider.field.outputPrice')}
                                         min="0"
                                         name={`agents.${agentKey}.price.output`}
                                         placeholder="0.002"
@@ -2195,9 +2298,9 @@ function SettingsProvider() {
 
                                     <FormInputNumberItem
                                         control={control}
-                                        description="Price per 1M cached read tokens"
+                                        description={t('settings.provider.field.cacheReadPrice.description')}
                                         disabled={isLoading}
-                                        label="Cache Read Price"
+                                        label={t('settings.provider.field.cacheReadPrice')}
                                         min="0"
                                         name={`agents.${agentKey}.price.cacheRead`}
                                         placeholder="0.0001"
@@ -2206,9 +2309,9 @@ function SettingsProvider() {
 
                                     <FormInputNumberItem
                                         control={control}
-                                        description="Price per 1M cache write tokens"
+                                        description={t('settings.provider.field.cacheWritePrice.description')}
                                         disabled={isLoading}
-                                        label="Cache Write Price"
+                                        label={t('settings.provider.field.cacheWritePrice')}
                                         min="0"
                                         name={`agents.${agentKey}.price.cacheWrite`}
                                         placeholder="0.00015"
@@ -2220,12 +2323,12 @@ function SettingsProvider() {
 
                         <div className="col-span-full p-px">
                             <div className="mt-6 flex flex-col gap-4">
-                                <h4 className="text-sm font-medium">Extra Body</h4>
+                                <h4 className="text-sm font-medium">{t('settings.provider.extraBody.title')}</h4>
                                 <FormTextareaItem
                                     control={control}
-                                    description="Provider-specific request body fields as a JSON object, merged into every call (e.g. vLLM chat_template_kwargs)."
+                                    description={t('settings.provider.field.extraBody.description')}
                                     disabled={isLoading}
-                                    label="Extra Body (JSON)"
+                                    label={t('settings.provider.field.extraBody')}
                                     name={`agents.${agentKey}.extraBody`}
                                     placeholder={'{\n    "chat_template_kwargs": { "enable_thinking": false }\n}'}
                                 />
@@ -2242,14 +2345,16 @@ function SettingsProvider() {
             <AppHeader>
                 <AppHeaderContent>
                     <AppHeaderTitle icon={<Plug className="size-4 shrink-0" />}>
-                        {isNew ? 'Create Provider' : 'Edit Provider'}
+                        {isNew ? t('settings.provider.createTitle') : t('settings.provider.editTitle')}
                     </AppHeaderTitle>
                 </AppHeaderContent>
                 <AppHeaderActions>
                     <AppHeaderAction
                         disabled={isLoading || isTestLoading || isAgentTestLoading}
                         icon={isTestLoading ? <Spinner variant="circle" /> : <Play />}
-                        label={isTestLoading ? 'Testing...' : 'Test'}
+                        label={
+                            isTestLoading ? t('settings.provider.action.testing') : t('settings.provider.action.test')
+                        }
                         onClick={() => handleTest()}
                         type="button"
                         variant="outline"
@@ -2257,7 +2362,7 @@ function SettingsProvider() {
                     <AppHeaderAction
                         form="provider-form"
                         icon={<Save />}
-                        label={isNew ? 'Create' : 'Save'}
+                        label={isNew ? t('settings.provider.action.create') : t('settings.provider.action.save')}
                         loading={isLoading}
                         type="submit"
                     />
@@ -2265,7 +2370,7 @@ function SettingsProvider() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
-                                    aria-label="Provider actions"
+                                    aria-label={t('settings.provider.action.menuAria')}
                                     className="size-8 p-0"
                                     type="button"
                                     variant="ghost"
@@ -2282,7 +2387,9 @@ function SettingsProvider() {
                                     onClick={handleDelete}
                                 >
                                     {isDeleteLoading ? <Spinner variant="circle" /> : <Trash2 />}
-                                    {isDeleteLoading ? 'Deleting...' : 'Delete'}
+                                    {isDeleteLoading
+                                        ? t('settings.provider.action.deleting')
+                                        : t('settings.provider.action.delete')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

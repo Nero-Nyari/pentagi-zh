@@ -51,6 +51,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useResourcesUpload } from '@/features/resources/use-resources-upload';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/hooks/use-translation';
 import { routes } from '@/lib/routes';
 import { formatAccountProvider } from '@/lib/utils/format';
 import { useFavorites } from '@/providers/favorites-provider';
@@ -78,6 +79,7 @@ export function MainSidebar() {
     const { authInfo, logout } = useUser();
     const user = authInfo?.user;
     const { setTheme, theme } = useTheme();
+    const { t } = useTranslation();
     const { addFavoriteFlow, canToggleFavorite, favoriteFlowIds, removeFavoriteFlow } = useFavorites();
     const { flows } = useSidebarFlows();
 
@@ -122,7 +124,7 @@ export function MainSidebar() {
                                 <SidebarMenuButton asChild>
                                     <Link to={routes.newFlow}>
                                         <Plus />
-                                        New Flow
+                                        {t('nav.newFlow')}
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -133,7 +135,7 @@ export function MainSidebar() {
                                 >
                                     <Link to={routes.dashboard}>
                                         <LayoutDashboard />
-                                        Dashboard
+                                        {t('nav.dashboard')}
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -144,7 +146,7 @@ export function MainSidebar() {
                                 >
                                     <Link to={routes.flows}>
                                         <GitFork />
-                                        Flows
+                                        {t('nav.flows')}
                                     </Link>
                                 </SidebarMenuButton>
                                 <SidebarMenuAction
@@ -153,7 +155,7 @@ export function MainSidebar() {
                                     showOnHover
                                 >
                                     <Link
-                                        aria-label="New flow"
+                                        aria-label={t('nav.newFlow')}
                                         to={routes.newFlow}
                                     >
                                         <Plus />
@@ -167,7 +169,7 @@ export function MainSidebar() {
                                 >
                                     <Link to={routes.templates}>
                                         <FileText />
-                                        Templates
+                                        {t('nav.templates')}
                                     </Link>
                                 </SidebarMenuButton>
                                 <SidebarMenuAction
@@ -176,7 +178,7 @@ export function MainSidebar() {
                                     showOnHover
                                 >
                                     <Link
-                                        aria-label="New template"
+                                        aria-label={t('nav.newTemplate')}
                                         to={routes.newTemplate}
                                     >
                                         <Plus />
@@ -190,14 +192,14 @@ export function MainSidebar() {
                                 >
                                     <Link to={routes.resources}>
                                         <Folder />
-                                        Resources
+                                        {t('nav.resources')}
                                     </Link>
                                 </SidebarMenuButton>
                                 <SidebarMenuAction
                                     className="data-[state=open]:bg-accent rounded-sm"
                                     onClick={resourcesUpload.openFilePicker}
                                     showOnHover
-                                    title="Upload file"
+                                    title={t('nav.uploadFile')}
                                     type="button"
                                 >
                                     <Plus />
@@ -210,7 +212,7 @@ export function MainSidebar() {
                                 >
                                     <Link to={routes.knowledges}>
                                         <LibraryBig />
-                                        Knowledges
+                                        {t('nav.knowledges')}
                                     </Link>
                                 </SidebarMenuButton>
                                 <SidebarMenuAction
@@ -219,7 +221,7 @@ export function MainSidebar() {
                                     showOnHover
                                 >
                                     <Link
-                                        aria-label="New knowledge"
+                                        aria-label={t('nav.newKnowledge')}
                                         to={routes.newKnowledge}
                                     >
                                         <Plus />
@@ -234,7 +236,7 @@ export function MainSidebar() {
                     <SidebarGroup>
                         <SidebarGroupLabel className="flex items-center gap-2">
                             <Clock />
-                            Recent Flows
+                            {t('nav.recentFlows')}
                         </SidebarGroupLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
@@ -257,7 +259,7 @@ export function MainSidebar() {
                     <SidebarGroup>
                         <SidebarGroupLabel className="flex items-center gap-2">
                             <Star />
-                            Favorite Flows
+                            {t('nav.favoriteFlows')}
                         </SidebarGroupLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
@@ -288,7 +290,7 @@ export function MainSidebar() {
                                 to={routes.settings.root}
                             >
                                 <Settings />
-                                Settings
+                                {t('nav.settings')}
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -333,8 +335,8 @@ export function MainSidebar() {
                                             variant="secondary"
                                         >
                                             {user?.type === 'local'
-                                                ? 'Local'
-                                                : (formatAccountProvider(user?.provider) ?? 'OAuth')}
+                                                ? t('nav.user.local')
+                                                : (formatAccountProvider(user?.provider) ?? t('nav.user.oauth'))}
                                         </Badge>
                                     </div>
                                 </DropdownMenuLabel>
@@ -344,7 +346,7 @@ export function MainSidebar() {
                                     onSelect={(event) => event.preventDefault()}
                                 >
                                     <Settings2 />
-                                    Theme
+                                    {t('common.theme')}
                                     <Tabs
                                         className="-my-1.5 -mr-2 ml-auto"
                                         onValueChange={(value) => setTheme(value as Theme)}
@@ -352,21 +354,21 @@ export function MainSidebar() {
                                     >
                                         <TabsList className="dark:bg-background h-7 p-0.5">
                                             <TabsTrigger
-                                                aria-label="System theme"
+                                                aria-label={t('common.theme.system')}
                                                 className="dark:data-[state=active]:bg-card h-6 px-2"
                                                 value="system"
                                             >
                                                 <Monitor className="size-4" />
                                             </TabsTrigger>
                                             <TabsTrigger
-                                                aria-label="Light theme"
+                                                aria-label={t('common.theme.light')}
                                                 className="dark:data-[state=active]:bg-card h-6 px-2"
                                                 value="light"
                                             >
                                                 <Sun className="size-4" />
                                             </TabsTrigger>
                                             <TabsTrigger
-                                                aria-label="Dark theme"
+                                                aria-label={t('common.theme.dark')}
                                                 className="dark:data-[state=active]:bg-card h-6 px-2"
                                                 value="dark"
                                             >
@@ -382,13 +384,13 @@ export function MainSidebar() {
                                         to={routes.settings.account}
                                     >
                                         <UserIcon className="mr-2 size-4" />
-                                        Profile
+                                        {t('nav.profile')}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => logout()}>
                                     <LogOut className="mr-2 size-4" />
-                                    Log out
+                                    {t('nav.logout')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -412,6 +414,8 @@ export function MainSidebar() {
 }
 
 function FlowMenuItem({ activeFlowId, flow, isFavorite, isToggleShown, onToggleFavorite }: FlowMenuItemProps) {
+    const { t } = useTranslation();
+
     return (
         <SidebarMenuItem>
             <SidebarMenuButton
@@ -430,7 +434,7 @@ function FlowMenuItem({ activeFlowId, flow, isFavorite, isToggleShown, onToggleF
             </SidebarMenuButton>
             {isToggleShown && (
                 <SidebarMenuAction
-                    aria-label="Toggle favorite"
+                    aria-label={t('nav.toggleFavorite')}
                     aria-pressed={isFavorite}
                     className="data-[state=open]:bg-accent rounded-sm"
                     onClick={() => onToggleFavorite(flow.id)}

@@ -10,6 +10,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Form, FormControl, FormField } from '@/components/ui/form';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useTranslation } from '@/hooks/use-translation';
 import { useFlow } from '@/providers/flow-provider';
 
 import FlowTasksDropdown from '../flow-tasks-dropdown';
@@ -26,6 +27,7 @@ const searchFormSchema = z.object({
 });
 
 function FlowAgents() {
+    const { t } = useTranslation();
     const { flowData, flowId } = useFlow();
 
     const logs = useMemo(() => flowData?.agentLogs ?? [], [flowData?.agentLogs]);
@@ -151,13 +153,13 @@ function FlowAgents() {
                                         <InputGroupInput
                                             {...field}
                                             autoComplete="off"
-                                            placeholder="Search agent logs..."
+                                            placeholder={t('flows.agents.search')}
                                             type="text"
                                         />
                                         {field.value && (
                                             <InputGroupAddon align="inline-end">
                                                 <InputGroupButton
-                                                    aria-label="Clear agent search"
+                                                    aria-label={t('flows.agents.clearSearch')}
                                                     onClick={() => {
                                                         form.reset({ search: '' });
                                                         setDebouncedSearchValue('');
@@ -207,7 +209,7 @@ function FlowAgents() {
 
                     {!isScrolledToBottom && (
                         <Button
-                            aria-label="Scroll to latest agent log"
+                            aria-label={t('flows.agents.scrollToLatest')}
                             className="absolute right-4 bottom-4 z-10 shadow-md hover:shadow-lg"
                             onClick={() => scrollToEnd()}
                             size="icon-sm"
@@ -227,8 +229,8 @@ function FlowAgents() {
                         <EmptyMedia variant="icon">
                             <ListFilter />
                         </EmptyMedia>
-                        <EmptyTitle>No agent logs found</EmptyTitle>
-                        <EmptyDescription>Try adjusting your search or filter parameters</EmptyDescription>
+                        <EmptyTitle>{t('flows.agents.notFound.title')}</EmptyTitle>
+                        <EmptyDescription>{t('flows.common.tryAdjust')}</EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
                         <Button
@@ -236,7 +238,7 @@ function FlowAgents() {
                             variant="outline"
                         >
                             <X />
-                            Reset filters
+                            {t('flows.common.resetFilters')}
                         </Button>
                     </EmptyContent>
                 </Empty>
@@ -246,8 +248,8 @@ function FlowAgents() {
                         <EmptyMedia variant="icon">
                             <Bot />
                         </EmptyMedia>
-                        <EmptyTitle>No agent logs available</EmptyTitle>
-                        <EmptyDescription>Agent logs will appear here when agents are working</EmptyDescription>
+                        <EmptyTitle>{t('flows.agents.empty.title')}</EmptyTitle>
+                        <EmptyDescription>{t('flows.agents.empty.description')}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             )}

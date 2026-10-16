@@ -4,6 +4,7 @@ import type {
     KnowledgeAnswerType as KnowledgeAnswerTypeT,
     KnowledgeGuideType as KnowledgeGuideTypeT,
 } from '@/graphql/types';
+import type { TranslationKey } from '@/lib/i18n/types';
 
 import { type EditorViewMode, MarkdownEditorField } from '@/components/shared/markdown-editor';
 import {
@@ -18,6 +19,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { InputGroup, InputGroupTextareaAutosize } from '@/components/ui/input-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KnowledgeAnswerType, KnowledgeDocType, KnowledgeGuideType } from '@/graphql/types';
+import { useTranslation } from '@/hooks/use-translation';
 
 import type { FormValues } from './knowledge-form';
 
@@ -26,6 +28,30 @@ import { KNOWLEDGE_LIMITS } from './knowledge-form';
 const docTypeValues = [KnowledgeDocType.Answer, KnowledgeDocType.Guide, KnowledgeDocType.Code] as const;
 const guideTypeValues = Object.values(KnowledgeGuideType) as KnowledgeGuideTypeT[];
 const answerTypeValues = Object.values(KnowledgeAnswerType) as KnowledgeAnswerTypeT[];
+
+// 枚举值是后端契约，下拉展示时映射到本地化文案。
+const docTypeLabelKey: Record<KnowledgeDocType, TranslationKey> = {
+    [KnowledgeDocType.Answer]: 'knowledges.docType.answer',
+    [KnowledgeDocType.Code]: 'knowledges.docType.code',
+    [KnowledgeDocType.Guide]: 'knowledges.docType.guide',
+};
+
+const guideTypeLabelKey: Record<KnowledgeGuideType, TranslationKey> = {
+    [KnowledgeGuideType.Configure]: 'knowledges.guideType.configure',
+    [KnowledgeGuideType.Development]: 'knowledges.guideType.development',
+    [KnowledgeGuideType.Install]: 'knowledges.guideType.install',
+    [KnowledgeGuideType.Other]: 'knowledges.guideType.other',
+    [KnowledgeGuideType.Pentest]: 'knowledges.guideType.pentest',
+    [KnowledgeGuideType.Use]: 'knowledges.guideType.use',
+};
+
+const answerTypeLabelKey: Record<KnowledgeAnswerType, TranslationKey> = {
+    [KnowledgeAnswerType.Code]: 'knowledges.answerType.code',
+    [KnowledgeAnswerType.Guide]: 'knowledges.answerType.guide',
+    [KnowledgeAnswerType.Other]: 'knowledges.answerType.other',
+    [KnowledgeAnswerType.Tool]: 'knowledges.answerType.tool',
+    [KnowledgeAnswerType.Vulnerability]: 'knowledges.answerType.vulnerability',
+};
 
 // The backend stores `code_lang` as a free-form string and uses it both as a
 // vector-store filter and as the markdown code-block tag (see
@@ -87,21 +113,23 @@ export function KnowledgeContentField({
     isSaving,
     viewMode = 'rich',
 }: KnowledgeContentFieldProps) {
+    const { t } = useTranslation();
+
     return (
         <FormField
             control={control}
             name="content"
             render={({ field }) => (
                 <FormItem className={fillParent ? 'flex min-h-0 flex-1 flex-col' : undefined}>
-                    {hasLabel ? <FormLabel>Content</FormLabel> : null}
+                    {hasLabel ? <FormLabel>{t('knowledges.field.content')}</FormLabel> : null}
                     <FormControl>
                         <MarkdownEditorField
-                            aria-label="Content"
+                            aria-label={t('knowledges.field.content')}
                             disabled={isSaving}
                             mode={viewMode}
                             onBlur={field.onBlur}
                             onChange={field.onChange}
-                            placeholder="Knowledge content (will be embedded into the vector store)"
+                            placeholder={t('knowledges.field.contentPlaceholder')}
                             ref={field.ref}
                             value={field.value}
                         />
@@ -117,6 +145,7 @@ export function KnowledgeContentField({
 }
 
 export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaFieldsProps) {
+    const { t } = useTranslation();
     // Targeted subscription: only this component re-renders when docType changes,
     // not the whole form. A full-form `useWatch` re-renders on every editor keystroke.
     const docType = useWatch({ control, name: 'docType' });
@@ -150,7 +179,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                     name="docType"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Document type</FormLabel>
+                            <FormLabel>{t('knowledges.field.docType')}</FormLabel>
                             <Select
                                 disabled={isSaving}
                                 onValueChange={(value) =>
@@ -160,7 +189,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                             >
                                 <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select type" />
+                                        <SelectValue placeholder={t('knowledges.field.docType.placeholder')} />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -169,7 +198,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                                             key={value}
                                             value={value}
                                         >
-                                            {value}
+                                            {t(docTypeLabelKey[value])}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -185,7 +214,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                         name="guideType"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Guide type</FormLabel>
+                                <FormLabel>{t('knowledges.field.guideType')}</FormLabel>
                                 <Select
                                     disabled={isSaving}
                                     onValueChange={field.onChange}
@@ -193,7 +222,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                                 >
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select guide type" />
+                                            <SelectValue placeholder={t('knowledges.field.guideType.placeholder')} />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
@@ -202,7 +231,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                                                 key={value}
                                                 value={value}
                                             >
-                                                {value}
+                                                {t(guideTypeLabelKey[value])}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -219,7 +248,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                         name="answerType"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Answer type</FormLabel>
+                                <FormLabel>{t('knowledges.field.answerType')}</FormLabel>
                                 <Select
                                     disabled={isSaving}
                                     onValueChange={field.onChange}
@@ -227,7 +256,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                                 >
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select answer type" />
+                                            <SelectValue placeholder={t('knowledges.field.answerType.placeholder')} />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
@@ -236,7 +265,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                                                 key={value}
                                                 value={value}
                                             >
-                                                {value}
+                                                {t(answerTypeLabelKey[value])}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -253,7 +282,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                         name="codeLang"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Code language</FormLabel>
+                                <FormLabel>{t('knowledges.field.codeLang')}</FormLabel>
                                 {/* Backend accepts any string — the dropdown is a UX hint, not a closed enum. */}
                                 <Autocomplete
                                     onValueChange={field.onChange}
@@ -265,12 +294,12 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                                             maxLength={KNOWLEDGE_LIMITS.codeLang}
                                             name={field.name}
                                             onBlur={field.onBlur}
-                                            placeholder="e.g. python, go, typescript"
+                                            placeholder={t('knowledges.field.codeLang.placeholder')}
                                             ref={field.ref}
                                         />
                                     </FormControl>
                                     <AutocompleteContent>
-                                        <AutocompleteEmpty>No matching language</AutocompleteEmpty>
+                                        <AutocompleteEmpty>{t('knowledges.field.codeLang.empty')}</AutocompleteEmpty>
                                         <AutocompleteGroup>
                                             {LANGUAGES.map((lang) => (
                                                 <AutocompleteItem
@@ -295,7 +324,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                 name="question"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Question</FormLabel>
+                        <FormLabel>{t('knowledges.field.question')}</FormLabel>
                         <FormControl>
                             <InputGroup className="block">
                                 <InputGroupTextareaAutosize
@@ -306,7 +335,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                                     maxLength={KNOWLEDGE_LIMITS.question}
                                     maxRows={6}
                                     minRows={1}
-                                    placeholder="Short title or question this document answers"
+                                    placeholder={t('knowledges.field.question.placeholder')}
                                 />
                             </InputGroup>
                         </FormControl>
@@ -320,7 +349,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                 name="description"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Description (optional)</FormLabel>
+                        <FormLabel>{t('knowledges.field.description')}</FormLabel>
                         <FormControl>
                             <InputGroup className="block">
                                 <InputGroupTextareaAutosize
@@ -330,7 +359,7 @@ export function KnowledgeMetaFields({ control, isNew, isSaving }: KnowledgeMetaF
                                     maxLength={KNOWLEDGE_LIMITS.description}
                                     maxRows={8}
                                     minRows={1}
-                                    placeholder="Optional short description"
+                                    placeholder={t('knowledges.field.description.placeholder')}
                                 />
                             </InputGroup>
                         </FormControl>

@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import GithubSlugger from 'github-slugger';
 
 import type { FlowFragmentFragment, TaskFragmentFragment } from '@/graphql/types';
+import type { Translator } from '@/lib/i18n/types';
 
 import { StatusType } from '@/graphql/types';
 import { Log } from '@/lib/log';
@@ -88,15 +89,19 @@ const generateTableOfContents = (tasks: TaskFragmentFragment[], flow?: FlowFragm
     return `${toc}\n---\n\n`;
 };
 
-export const generateReport = (tasks: TaskFragmentFragment[], flow?: FlowFragmentFragment | null): string => {
+export const generateReport = (
+    tasks: TaskFragmentFragment[],
+    flow: FlowFragmentFragment | null | undefined,
+    t: Translator,
+): string => {
     if (!tasks || tasks.length === 0) {
         if (flow) {
             const flowEmoji = getStatusEmoji(flow.status);
 
-            return `# ${flowEmoji} ${flow.id}. ${flow.title}\n\nNo tasks available for this flow.`;
+            return `# ${flowEmoji} ${flow.id}. ${flow.title}\n\n${t('report.body.noTasks')}`;
         }
 
-        return 'No tasks available for this flow.';
+        return t('report.body.noTasks');
     }
 
     const sortedTasks = [...tasks].sort((a, b) => +a.id - +b.id);

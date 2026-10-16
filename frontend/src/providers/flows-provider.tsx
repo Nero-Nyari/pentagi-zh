@@ -15,6 +15,7 @@ import {
     FlowsDocument,
     FlowUpdatedDocument,
 } from '@/graphql/types';
+import { useTranslation } from '@/hooks/use-translation';
 import { Log } from '@/lib/log';
 
 export type Flow = FlowFragmentFragment;
@@ -38,6 +39,7 @@ interface FlowsProviderProps {
 }
 
 export function FlowsProvider({ children }: FlowsProviderProps) {
+    const { t } = useTranslation();
     const {
         data: flowsData,
         error: flowsError,
@@ -88,8 +90,8 @@ export function FlowsProvider({ children }: FlowsProviderProps) {
 
                 return null;
             } catch (error) {
-                const description = error instanceof Error ? error.message : 'An error occurred while creating flow';
-                toast.error('Failed to create flow', {
+                const description = error instanceof Error ? error.message : t('flows.provider.createFlowError');
+                toast.error(t('flows.provider.createFlowFailed'), {
                     description,
                 });
                 Log.error('Error creating flow:', error);
@@ -97,7 +99,7 @@ export function FlowsProvider({ children }: FlowsProviderProps) {
                 return null;
             }
         },
-        [createFlowMutation],
+        [createFlowMutation, t],
     );
 
     const createFlowWithAssistant = useCallback(
@@ -128,9 +130,8 @@ export function FlowsProvider({ children }: FlowsProviderProps) {
 
                 return null;
             } catch (error) {
-                const description =
-                    error instanceof Error ? error.message : 'An error occurred while creating assistant';
-                toast.error('Failed to create assistant', {
+                const description = error instanceof Error ? error.message : t('flows.provider.createAssistantError');
+                toast.error(t('flows.provider.createAssistantFailed'), {
                     description,
                 });
                 Log.error('Error creating assistant:', error);
@@ -138,7 +139,7 @@ export function FlowsProvider({ children }: FlowsProviderProps) {
                 return null;
             }
         },
-        [createAssistantMutation],
+        [createAssistantMutation, t],
     );
 
     const deleteFlow = useCallback(
@@ -149,9 +150,9 @@ export function FlowsProvider({ children }: FlowsProviderProps) {
                 return false;
             }
 
-            const flowDescription = `${title || 'Unknown'} (ID: ${flowId})`;
+            const flowDescription = `${title || t('flows.provider.unknownTitle')} (ID: ${flowId})`;
 
-            const loadingToastId = toast.loading('Deleting flow...', {
+            const loadingToastId = toast.loading(t('flows.provider.delete.loading'), {
                 description: flowDescription,
             });
 
@@ -160,14 +161,14 @@ export function FlowsProvider({ children }: FlowsProviderProps) {
                     variables: { flowId },
                 });
 
-                toast.success('Flow deleted successfully', {
+                toast.success(t('flows.provider.delete.success'), {
                     description: flowDescription,
                     id: loadingToastId,
                 });
 
                 return true;
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'An error occurred while deleting flow';
+                const errorMessage = error instanceof Error ? error.message : t('flows.provider.delete.error');
                 toast.error(errorMessage, {
                     description: flowDescription,
                     id: loadingToastId,
@@ -177,7 +178,7 @@ export function FlowsProvider({ children }: FlowsProviderProps) {
                 return false;
             }
         },
-        [deleteFlowMutation],
+        [deleteFlowMutation, t],
     );
 
     const finishFlow = useCallback(
@@ -188,9 +189,9 @@ export function FlowsProvider({ children }: FlowsProviderProps) {
                 return false;
             }
 
-            const flowDescription = `${title || 'Unknown'} (ID: ${flowId})`;
+            const flowDescription = `${title || t('flows.provider.unknownTitle')} (ID: ${flowId})`;
 
-            const loadingToastId = toast.loading('Finishing flow...', {
+            const loadingToastId = toast.loading(t('flows.provider.finish.loading'), {
                 description: flowDescription,
             });
 
@@ -199,14 +200,14 @@ export function FlowsProvider({ children }: FlowsProviderProps) {
                     variables: { flowId },
                 });
 
-                toast.success('Flow finished successfully', {
+                toast.success(t('flows.provider.finish.success'), {
                     description: flowDescription,
                     id: loadingToastId,
                 });
 
                 return true;
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'An error occurred while finishing flow';
+                const errorMessage = error instanceof Error ? error.message : t('flows.provider.finish.error');
                 toast.error(errorMessage, {
                     description: flowDescription,
                     id: loadingToastId,
@@ -216,7 +217,7 @@ export function FlowsProvider({ children }: FlowsProviderProps) {
                 return false;
             }
         },
-        [finishFlowMutation],
+        [finishFlowMutation, t],
     );
 
     const value = useMemo(

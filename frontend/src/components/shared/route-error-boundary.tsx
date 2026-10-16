@@ -2,8 +2,11 @@ import { TriangleAlert } from 'lucide-react';
 import { useEffect, useSyncExternalStore } from 'react';
 import { useRouteError } from 'react-router-dom';
 
+import type { TranslationKey } from '@/lib/i18n/types';
+
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { useTranslation } from '@/hooks/use-translation';
 import { isChunkLoadError, isDomDesyncError, reloadOnce } from '@/lib/chunk-reload';
 
 const subscribeToConnection = (onChange: () => void) => {
@@ -26,20 +29,20 @@ const describeFailure = ({
     isChunk: boolean;
     isDesync: boolean;
     isOnline: boolean;
-}) => {
+}): TranslationKey => {
     if (isChunk && !isOnline) {
-        return 'You are offline, so this page could not load. It will reload once the connection is back.';
+        return 'shared.routeError.offlineChunk';
     }
 
     if (isChunk) {
-        return 'A new version was likely just deployed. Reloading will load the latest one.';
+        return 'shared.routeError.chunk';
     }
 
     if (isDesync) {
-        return 'The page hit a display glitch. Reloading usually clears it.';
+        return 'shared.routeError.desync';
     }
 
-    return 'The page ran into an unexpected error. Reloading usually clears it.';
+    return 'shared.routeError.generic';
 };
 
 /**
@@ -50,6 +53,7 @@ const describeFailure = ({
  * desync from browser auto-translation) — both shown as a recoverable card.
  */
 function RouteErrorBoundary() {
+    const { t } = useTranslation();
     const error = useRouteError();
     const isChunk = isChunkLoadError(error);
     const isDesync = isDomDesyncError(error);
@@ -72,8 +76,8 @@ function RouteErrorBoundary() {
                     <EmptyMedia variant="icon">
                         <TriangleAlert />
                     </EmptyMedia>
-                    <EmptyTitle>Something went wrong</EmptyTitle>
-                    <EmptyDescription>{describeFailure({ isChunk, isDesync, isOnline })}</EmptyDescription>
+                    <EmptyTitle>{t('shared.routeError.title')}</EmptyTitle>
+                    <EmptyDescription>{t(describeFailure({ isChunk, isDesync, isOnline }))}</EmptyDescription>
                 </EmptyHeader>
                 <EmptyContent>
                     <Button
@@ -81,7 +85,7 @@ function RouteErrorBoundary() {
                         onClick={() => window.location.reload()}
                         variant="secondary"
                     >
-                        Reload
+                        {t('shared.routeError.reload')}
                     </Button>
                 </EmptyContent>
             </Empty>

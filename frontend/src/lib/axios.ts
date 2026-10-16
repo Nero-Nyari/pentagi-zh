@@ -2,6 +2,9 @@ import type { AxiosError, AxiosRequestConfig } from 'axios';
 
 import Axios from 'axios';
 
+import type { Translator } from '@/lib/i18n/types';
+
+import { runtimeT } from '@/lib/i18n/runtime';
 import { baseUrl } from '@/models/api';
 import { AUTH_STORAGE_KEY } from '@/providers/user-provider';
 
@@ -98,7 +101,7 @@ axios.interceptors.response.use(
                     if (err.response?.data) {
                         Log.warn(err.response.data);
                         const warns = err.response.data as Record<string, string[]>;
-                        const globalMessage = warns[''] || ['Please confirm your input.'];
+                        const globalMessage = warns[''] || [runtimeT('errors.request.confirmInput')];
                         error.message = globalMessage[0] as string;
                     }
 
@@ -184,12 +187,17 @@ export const api = {
 export const isApiSuccess = <T>(response: ApiResponse<T>): response is ApiSuccessResponse<T> =>
     response.status === 'success';
 
-/** Returns `response.data`, or throws if the API marked the response as an error. */
-export const unwrapApiResponse = <T>(response: ApiResponse<T>): T => {
+/**
+ * Returns `response.data`, or throws if the API marked the response as an error.
+ *
+ * `t` 可选：仅在响应本身没有携带后端错误消息、需要兜底文案时才使用；不传时
+ * 沿用英文兜底，避免破坏既有调用方。
+ */
+export const unwrapApiResponse = <T>(response: ApiResponse<T>, t?: Translator): T => {
     if (!isApiSuccess(response) || response.data == null) {
         const message = !isApiSuccess(response) ? (response.msg ?? response.error) : undefined;
 
-        throw new Error(message ?? 'Unexpected response from server');
+        throw new Error(message ?? (t ? t('errors.request.unexpectedResponse') : 'Unexpected response from server'));
     }
 
     return response.data;

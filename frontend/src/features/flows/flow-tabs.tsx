@@ -13,6 +13,7 @@ import FlowTerminal from '@/features/flows/terminal/flow-terminal';
 import FlowTools from '@/features/flows/tools/flow-tools';
 import FlowVectorStores from '@/features/flows/vector-stores/flow-vector-stores';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { useTranslation } from '@/hooks/use-translation';
 
 interface FlowTabsProps {
     activeTab: string;
@@ -20,6 +21,7 @@ interface FlowTabsProps {
 }
 
 function FlowTabs({ activeTab, onTabChange }: FlowTabsProps) {
+    const { t } = useTranslation();
     const { isDesktop } = useBreakpoint();
 
     const previousActiveTabRef = useRef<string>(activeTab);
@@ -41,16 +43,16 @@ function FlowTabs({ activeTab, onTabChange }: FlowTabsProps) {
             <div className="max-w-full pr-4">
                 <ScrollArea className="w-full pb-3">
                     <TabsList className="flex w-fit">
-                        {!isDesktop && <TabsTrigger value="automation">Automation</TabsTrigger>}
-                        {!isDesktop && <TabsTrigger value="assistant">Assistant</TabsTrigger>}
-                        {!isDesktop && <TabsTrigger value="dashboard">Dashboard</TabsTrigger>}
-                        <TabsTrigger value="terminal">Terminal</TabsTrigger>
-                        <TabsTrigger value="tasks">Tasks</TabsTrigger>
-                        <TabsTrigger value="agents">Agents</TabsTrigger>
-                        <TabsTrigger value="tools">Searches</TabsTrigger>
-                        <TabsTrigger value="vectorStores">Vector Store</TabsTrigger>
-                        <TabsTrigger value="files">Files</TabsTrigger>
-                        <TabsTrigger value="screenshots">Screenshots</TabsTrigger>
+                        {!isDesktop && <TabsTrigger value="automation">{t('flows.tab.automation')}</TabsTrigger>}
+                        {!isDesktop && <TabsTrigger value="assistant">{t('flows.tab.assistant')}</TabsTrigger>}
+                        {!isDesktop && <TabsTrigger value="dashboard">{t('flows.tab.dashboard')}</TabsTrigger>}
+                        <TabsTrigger value="terminal">{t('flows.tab.terminal')}</TabsTrigger>
+                        <TabsTrigger value="tasks">{t('flows.tab.tasks')}</TabsTrigger>
+                        <TabsTrigger value="agents">{t('flows.tab.agents')}</TabsTrigger>
+                        <TabsTrigger value="tools">{t('flows.tab.searches')}</TabsTrigger>
+                        <TabsTrigger value="vectorStores">{t('flows.tab.vectorStore')}</TabsTrigger>
+                        <TabsTrigger value="files">{t('flows.tab.files')}</TabsTrigger>
+                        <TabsTrigger value="screenshots">{t('flows.tab.screenshots')}</TabsTrigger>
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>

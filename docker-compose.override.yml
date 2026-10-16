@@ -1,0 +1,21 @@
+# Local source build overlay.
+#
+# The prebuilt `vxcontrol/pentagi` image does not contain this checkout's changes, so the
+# `pentagi` service is built from the Dockerfile at the repository root instead:
+# `docker compose up -d --build` compiles the frontend and the backend inside the image.
+# The supporting images (pgvector, scraper, ...) keep coming from upstream — only `pentagi`
+# is overridden here.
+#
+# The image tag and the version strings live in `.env` (PENTAGI_IMAGE / PACKAGE_VER /
+# PACKAGE_REV). They must agree with `scripts/version.sh`, otherwise the image label and
+# what the binary reports about itself drift apart.
+services:
+    pentagi:
+        image: ${PENTAGI_IMAGE:-pentagi:local}
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                PACKAGE_VER: ${PACKAGE_VER:-}
+                PACKAGE_REV: ${PACKAGE_REV:-}
+                GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}

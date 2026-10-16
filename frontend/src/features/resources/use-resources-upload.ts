@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import type { UserResourceFragmentFragment } from '@/graphql/types';
+import type { Translator } from '@/lib/i18n/types';
 
-import { pluralizeItems } from '@/components/shared/file-manager';
+import { useTranslation } from '@/hooks/use-translation';
 import { api, getApiErrorMessage, unwrapApiResponse } from '@/lib/axios';
 import { validateUploadBatch } from '@/lib/upload-validation';
 
@@ -62,18 +63,21 @@ interface UseResourcesUploadResult {
     uploadFiles: (selectedFiles: File[], options?: UploadOptions) => Promise<null | UploadResponse>;
 }
 
-const UPLOAD_OVERWRITE_HINT = 'Resource already exists — please rename or remove the existing entry';
-
-const buildUploadSuccessMessage = (uploadedCount: number, dir?: string) => {
-    const target = dir ? `to /${dir}` : 'to your library';
-
+const buildUploadSuccessMessage = (t: Translator, uploadedCount: number, dir?: string) => {
     if (uploadedCount === 1) {
-        return { description: `Uploaded ${target}`, title: 'File uploaded' };
+        return {
+            description: dir
+                ? t('resources.upload.success.singleDir', { dir })
+                : t('resources.upload.success.singleLibrary'),
+            title: t('resources.upload.success.singleTitle'),
+        };
     }
 
     return {
-        description: `${uploadedCount} files uploaded ${target}`,
-        title: `${uploadedCount} ${pluralizeItems(uploadedCount)} uploaded`,
+        description: dir
+            ? t('resources.upload.success.multiDir', { count: uploadedCount, dir })
+            : t('resources.upload.success.multiLibrary', { count: uploadedCount }),
+        title: t('resources.upload.success.multiTitle', { count: uploadedCount }),
     };
 };
 
@@ -83,6 +87,7 @@ const buildUploadSuccessMessage = (uploadedCount: number, dir?: string) => {
  * declaratively.
  */
 export function useResourcesUpload({ defaultDir, onSuccess }: UseResourcesUploadParams = {}): UseResourcesUploadResult {
+    const { t } = useTranslation();
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [fileInputKey, setFileInputKey] = useState(0);
@@ -121,14 +126,18 @@ export function useResourcesUpload({ defaultDir, onSuccess }: UseResourcesUpload
                 return null;
             }
 
-            const validationError = validateUploadBatch(selectedFiles, {
-                maxFiles: MAX_UPLOAD_FILES_PER_REQUEST,
-                maxFileSizeMb: MAX_FILE_SIZE_MB,
-                maxTotalSizeMb: MAX_UPLOAD_TOTAL_SIZE_MB,
-            });
+            const validationError = validateUploadBatch(
+                selectedFiles,
+                {
+                    maxFiles: MAX_UPLOAD_FILES_PER_REQUEST,
+                    maxFileSizeMb: MAX_FILE_SIZE_MB,
+                    maxTotalSizeMb: MAX_UPLOAD_TOTAL_SIZE_MB,
+                },
+                t,
+            );
 
             if (validationError) {
-                toast.error('Upload failed', { description: validationError });
+                toast.error(t('resources.upload.error.title'), { description: validationError });
 
                 return null;
             }
@@ -161,7 +170,7 @@ export function useResourcesUpload({ defaultDir, onSuccess }: UseResourcesUpload
                     total: raw.total ?? 0,
                 };
                 const uploadedCount = data.items.length;
-                const message = buildUploadSuccessMessage(uploadedCount, targetDir);
+                const message = buildUploadSuccessMessage(t, uploadedCount, targetDir);
 
                 toast.success(message.title, { description: message.description });
 
@@ -169,18 +178,18 @@ export function useResourcesUpload({ defaultDir, onSuccess }: UseResourcesUpload
 
                 return data;
             } catch (error) {
-                const description = getApiErrorMessage(error, 'Failed to upload files', {
-                    409: UPLOAD_OVERWRITE_HINT,
+                const description = getApiErrorMessage(error, t('resources.upload.error.fallback'), {
+                    409: t('resources.upload.overwriteHint'),
                 });
 
-                toast.error('Upload failed', { description });
+                toast.error(t('resources.upload.error.title'), { description });
 
                 return null;
             } finally {
                 setIsUploading(false);
             }
         },
-        [onSuccess],
+        [onSuccess, t],
     );
 
     const handleFileSelection = useCallback(

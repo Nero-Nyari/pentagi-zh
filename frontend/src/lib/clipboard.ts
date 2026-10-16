@@ -1,6 +1,8 @@
 import { Terminal as XTerminal } from '@xterm/xterm';
 import { toast } from 'sonner';
 
+import type { Translator } from '@/lib/i18n/types';
+
 import { ResultFormat } from '@/graphql/types';
 
 import { Log } from './log';
@@ -127,12 +129,16 @@ export const getCleanTerminalText = (terminalContent: string): Promise<string> =
     });
 };
 
-export const formatMessageForClipboard = async (messageData: CopyableMessage): Promise<string> => {
+/**
+ * `t` 可选：不传时沿用英文标签，传入后 section 标题随界面语言变化。
+ */
+export const formatMessageForClipboard = async (messageData: CopyableMessage, t?: Translator): Promise<string> => {
     const { message, result, resultFormat = ResultFormat.Plain, thinking } = messageData;
     let content = '';
 
     if (thinking && thinking.trim()) {
-        content += `<details>\n<summary>Thinking</summary>\n\n${thinking.trim()}\n\n</details>\n\n`;
+        const thinkingLabel = t ? t('errors.clipboard.thinking') : 'Thinking';
+        content += `<details>\n<summary>${thinkingLabel}</summary>\n\n${thinking.trim()}\n\n</details>\n\n`;
     }
 
     if (message && message.trim()) {
@@ -154,19 +160,23 @@ export const formatMessageForClipboard = async (messageData: CopyableMessage): P
             }
         }
 
-        content += `<details>\n<summary>Result</summary>\n\n${resultContent}\n\n</details>`;
+        const resultLabel = t ? t('errors.clipboard.result') : 'Result';
+        content += `<details>\n<summary>${resultLabel}</summary>\n\n${resultContent}\n\n</details>`;
     }
 
     return content;
 };
 
-export const copyMessageToClipboard = async (messageData: CopyableMessage): Promise<void> => {
+/**
+ * `t` 可选：不传时沿用英文提示，传入后 toast 文案随界面语言变化。
+ */
+export const copyMessageToClipboard = async (messageData: CopyableMessage, t?: Translator): Promise<void> => {
     try {
-        const content = await formatMessageForClipboard(messageData);
+        const content = await formatMessageForClipboard(messageData, t);
         await navigator.clipboard.writeText(content);
-        toast.success('Copied to clipboard');
+        toast.success(t ? t('errors.clipboard.copied') : 'Copied to clipboard');
     } catch {
-        toast.error('Failed to copy to clipboard');
+        toast.error(t ? t('errors.clipboard.copyFailed') : 'Failed to copy to clipboard');
     }
 };
 

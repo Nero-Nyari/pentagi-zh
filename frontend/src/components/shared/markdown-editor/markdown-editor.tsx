@@ -7,6 +7,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 
 import { createMarkdownExtensions } from './markdown-editor-extensions';
@@ -166,9 +167,12 @@ function useMarkdownEditor({
     id,
     onBlur,
     onChange,
-    placeholder = 'Write something…',
+    placeholder,
     value,
 }: UseMarkdownEditorOptions): Editor | null {
+    const { t } = useTranslation();
+    const resolvedPlaceholder = placeholder ?? t('shared.markdownEditor.placeholder');
+
     // Suppress echoes of our own output: the markdown round-trip can re-serialize a document (a decoded HTML
     // entity, CRLF line endings), and that must not flip RHF's isDirty as if the user had edited.
     const lastEmittedRef = useRef<string>(value);
@@ -189,7 +193,7 @@ function useMarkdownEditor({
     // plugin regardless; keeping it out of the deps makes that explicit and stops rebuilding the whole
     // extension array on every placeholder change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const extensions = useMemo(() => createMarkdownExtensions(placeholder), []);
+    const extensions = useMemo(() => createMarkdownExtensions(resolvedPlaceholder), []);
 
     const editor = useEditor({
         content: initialContent,

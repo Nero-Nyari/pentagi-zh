@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { LanguageToggle } from '@/components/shared/language-toggle';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -55,8 +56,22 @@ export function AppHeaderAction({
     );
 }
 
+/**
+ * Right-hand side of a page header.
+ *
+ * The language toggle is appended here rather than by each page: every header
+ * in the app already routes its trailing controls through this component, so
+ * hanging it off the component itself is what makes the control show up
+ * everywhere — and stay put as pages come and go — without fifteen
+ * copy-pasted call sites.
+ */
 export function AppHeaderActions({ children, className }: { children?: ReactNode; className?: string }) {
-    return <div className={cn('flex shrink-0 items-center gap-2 px-4', className)}>{children}</div>;
+    return (
+        <div className={cn('flex shrink-0 items-center gap-2 px-4', className)}>
+            {children}
+            <LanguageToggle />
+        </div>
+    );
 }
 
 export function AppHeaderContent({ children, className }: { children: ReactNode; className?: string }) {

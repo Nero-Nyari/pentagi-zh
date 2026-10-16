@@ -7,6 +7,7 @@ import Markdown from '@/components/shared/markdown';
 import Terminal from '@/components/shared/terminal';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MessageLogType, ResultFormat } from '@/graphql/types';
+import { useTranslation } from '@/hooks/use-translation';
 import { copyMessageToClipboard } from '@/lib/clipboard';
 import { matchesSearchTerm } from '@/lib/text-filter';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ interface FlowMessageProps {
 }
 
 function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
+    const { t } = useTranslation();
     const { createdAt, message, result, resultFormat = ResultFormat.Plain, thinking, type } = log;
     const isReportMessage = type === MessageLogType.Report;
 
@@ -77,13 +79,16 @@ function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
     }, []);
 
     const handleCopy = useCallback(async () => {
-        await copyMessageToClipboard({
-            message,
-            result,
-            resultFormat,
-            thinking,
-        });
-    }, [thinking, message, result, resultFormat]);
+        await copyMessageToClipboard(
+            {
+                message,
+                result,
+                resultFormat,
+                thinking,
+            },
+            t,
+        );
+    }, [message, result, resultFormat, t, thinking]);
 
     const shouldShowThinking = thinking && (!message || isThinkingVisible);
 
@@ -157,7 +162,7 @@ function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
                             className="cursor-pointer"
                             onClick={toggleThinking}
                         >
-                            {isThinkingVisible ? 'Hide thinking' : 'Show thinking'}
+                            {isThinkingVisible ? t('flows.common.hideThinking') : t('flows.common.showThinking')}
                         </div>
                     </div>
                 )}
@@ -179,7 +184,7 @@ function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
                             className="cursor-pointer"
                             onClick={toggleDetails}
                         >
-                            {isDetailsVisible ? 'Hide details' : 'Show details'}
+                            {isDetailsVisible ? t('flows.common.hideDetails') : t('flows.common.showDetails')}
                         </div>
                         {renderDetailsContent()}
                     </div>
@@ -198,7 +203,7 @@ function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
                             onClick={handleCopy}
                         />
                     </TooltipTrigger>
-                    <TooltipContent>Copy</TooltipContent>
+                    <TooltipContent>{t('flows.common.copy')}</TooltipContent>
                 </Tooltip>
                 <span className="text-muted-foreground/50">{formatDate(new Date(createdAt))}</span>
                 <span

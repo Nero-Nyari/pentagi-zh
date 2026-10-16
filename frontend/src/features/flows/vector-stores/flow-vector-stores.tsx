@@ -10,6 +10,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Form, FormControl, FormField } from '@/components/ui/form';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useTranslation } from '@/hooks/use-translation';
 import { useFlow } from '@/providers/flow-provider';
 
 import FlowTasksDropdown from '../flow-tasks-dropdown';
@@ -26,6 +27,7 @@ const searchFormSchema = z.object({
 });
 
 function FlowVectorStores() {
+    const { t } = useTranslation();
     const { flowData, flowId } = useFlow();
 
     const logs = useMemo(() => flowData?.vectorStoreLogs ?? [], [flowData?.vectorStoreLogs]);
@@ -153,13 +155,13 @@ function FlowVectorStores() {
                                         <InputGroupInput
                                             {...field}
                                             autoComplete="off"
-                                            placeholder="Search vector store logs..."
+                                            placeholder={t('flows.vectors.search')}
                                             type="text"
                                         />
                                         {field.value && (
                                             <InputGroupAddon align="inline-end">
                                                 <InputGroupButton
-                                                    aria-label="Clear vector store search"
+                                                    aria-label={t('flows.vectors.clearSearch')}
                                                     onClick={() => {
                                                         form.reset({ search: '' });
                                                         setDebouncedSearchValue('');
@@ -208,7 +210,7 @@ function FlowVectorStores() {
 
                     {!isScrolledToBottom && (
                         <Button
-                            aria-label="Scroll to latest vector store log"
+                            aria-label={t('flows.vectors.scrollToLatest')}
                             className="absolute right-4 bottom-4 z-10 shadow-md hover:shadow-lg"
                             onClick={() => scrollToEnd()}
                             size="icon-sm"
@@ -228,8 +230,8 @@ function FlowVectorStores() {
                         <EmptyMedia variant="icon">
                             <ListFilter />
                         </EmptyMedia>
-                        <EmptyTitle>No vector store logs found</EmptyTitle>
-                        <EmptyDescription>Try adjusting your search or filter parameters</EmptyDescription>
+                        <EmptyTitle>{t('flows.vectors.notFound.title')}</EmptyTitle>
+                        <EmptyDescription>{t('flows.common.tryAdjust')}</EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
                         <Button
@@ -237,7 +239,7 @@ function FlowVectorStores() {
                             variant="outline"
                         >
                             <X />
-                            Reset filters
+                            {t('flows.common.resetFilters')}
                         </Button>
                     </EmptyContent>
                 </Empty>
@@ -247,10 +249,8 @@ function FlowVectorStores() {
                         <EmptyMedia variant="icon">
                             <Database />
                         </EmptyMedia>
-                        <EmptyTitle>No vector store logs available</EmptyTitle>
-                        <EmptyDescription>
-                            Vector store logs will appear here when the agent uses knowledge database
-                        </EmptyDescription>
+                        <EmptyTitle>{t('flows.vectors.empty.title')}</EmptyTitle>
+                        <EmptyDescription>{t('flows.vectors.empty.description')}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             )}

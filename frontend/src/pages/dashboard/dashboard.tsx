@@ -1,18 +1,22 @@
 import { LayoutDashboard } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
-import { AppHeader, AppHeaderContent, AppHeaderTitle } from '@/components/layouts/app/app-header';
+import type { TranslationKey } from '@/lib/i18n/types';
+
+import { AppHeader, AppHeaderActions, AppHeaderContent, AppHeaderTitle } from '@/components/layouts/app/app-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UsageStatsPeriod } from '@/graphql/types';
 import { usePageStorageKeys } from '@/hooks/use-page-storage-keys';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 import { DashboardAnalytics } from '@/pages/dashboard/dashboard-analytics';
 import { DashboardOverview } from '@/pages/dashboard/dashboard-overview';
 
-const periodOptions: { label: string; value: UsageStatsPeriod }[] = [
-    { label: 'Week', value: UsageStatsPeriod.Week },
-    { label: 'Month', value: UsageStatsPeriod.Month },
-    { label: 'Quarter', value: UsageStatsPeriod.Quarter },
+// 模块级常量只存键：此处在语言确定之前求值，需在渲染时再按当前语言取文案。
+const periodOptions: { labelKey: TranslationKey; value: UsageStatsPeriod }[] = [
+    { labelKey: 'dashboard.period.week', value: UsageStatsPeriod.Week },
+    { labelKey: 'dashboard.period.month', value: UsageStatsPeriod.Month },
+    { labelKey: 'dashboard.period.quarter', value: UsageStatsPeriod.Quarter },
 ];
 
 const VALID_PERIODS = new Set<string>(Object.values(UsageStatsPeriod));
@@ -40,6 +44,7 @@ const savePeriod = (storageKey: string, value: UsageStatsPeriod): void => {
 };
 
 function Dashboard() {
+    const { t } = useTranslation();
     const { period: periodStorageKey } = usePageStorageKeys();
     const [activeTab, setActiveTab] = useState('analytics');
     const [period, setPeriod] = useState<UsageStatsPeriod>(() => loadPeriod(periodStorageKey));
@@ -74,8 +79,11 @@ function Dashboard() {
         <>
             <AppHeader>
                 <AppHeaderContent>
-                    <AppHeaderTitle icon={<LayoutDashboard className="size-4 shrink-0" />}>Dashboard</AppHeaderTitle>
+                    <AppHeaderTitle icon={<LayoutDashboard className="size-4 shrink-0" />}>
+                        {t('dashboard.title')}
+                    </AppHeaderTitle>
                 </AppHeaderContent>
+                <AppHeaderActions />
             </AppHeader>
 
             <div className="flex flex-col gap-6 p-4">
@@ -86,8 +94,8 @@ function Dashboard() {
                 >
                     <div className="flex items-center justify-between">
                         <TabsList>
-                            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
+                            <TabsTrigger value="analytics">{t('dashboard.tabs.analytics')}</TabsTrigger>
+                            <TabsTrigger value="overview">{t('dashboard.tabs.overview')}</TabsTrigger>
                         </TabsList>
 
                         {activeTab === 'analytics' && (
@@ -96,22 +104,26 @@ function Dashboard() {
                                 value={period}
                             >
                                 <TabsList>
-                                    {periodOptions.map(({ label, value }) => (
-                                        <TabsTrigger
-                                            aria-label={label}
-                                            className="size-7 px-0 sm:size-auto sm:px-3"
-                                            key={value}
-                                            value={value}
-                                        >
-                                            <span
-                                                aria-hidden="true"
-                                                className="sm:hidden"
+                                    {periodOptions.map(({ labelKey, value }) => {
+                                        const label = t(labelKey);
+
+                                        return (
+                                            <TabsTrigger
+                                                aria-label={label}
+                                                className="size-7 px-0 sm:size-auto sm:px-3"
+                                                key={value}
+                                                value={value}
                                             >
-                                                {label[0]}
-                                            </span>
-                                            <span className="hidden sm:inline">{label}</span>
-                                        </TabsTrigger>
-                                    ))}
+                                                <span
+                                                    aria-hidden="true"
+                                                    className="sm:hidden"
+                                                >
+                                                    {label[0]}
+                                                </span>
+                                                <span className="hidden sm:inline">{label}</span>
+                                            </TabsTrigger>
+                                        );
+                                    })}
                                 </TabsList>
                             </Tabs>
                         )}

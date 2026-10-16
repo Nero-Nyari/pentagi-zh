@@ -5,6 +5,7 @@ import type { AgentLogFragmentFragment } from '@/graphql/types';
 
 import Markdown from '@/components/shared/markdown';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTranslation } from '@/hooks/use-translation';
 import { copyMessageToClipboard } from '@/lib/clipboard';
 import { matchesSearchTerm } from '@/lib/text-filter';
 import { formatDate } from '@/lib/utils/format';
@@ -19,6 +20,7 @@ interface FlowAgentProps {
 }
 
 function FlowAgent({ log, searchValue = '' }: FlowAgentProps) {
+    const { t } = useTranslation();
     const { createdAt, executor, initiator, result, subtaskId, task, taskId } = log;
 
     const searchChecks = useMemo(() => {
@@ -60,11 +62,14 @@ function FlowAgent({ log, searchValue = '' }: FlowAgentProps) {
     const shouldShowDetailsToggle = result || task.length > taskPreviewLength;
 
     const handleCopy = useCallback(async () => {
-        await copyMessageToClipboard({
-            message: task,
-            result: result || undefined,
-        });
-    }, [task, result]);
+        await copyMessageToClipboard(
+            {
+                message: task,
+                result: result || undefined,
+            },
+            t,
+        );
+    }, [t, task, result]);
 
     return (
         <div className="flex flex-col items-start">
@@ -81,7 +86,7 @@ function FlowAgent({ log, searchValue = '' }: FlowAgentProps) {
                             className="cursor-pointer"
                             onClick={() => setIsDetailsVisible(!isDetailsVisible)}
                         >
-                            {isDetailsVisible ? 'Hide details' : 'Show details'}
+                            {isDetailsVisible ? t('flows.common.hideDetails') : t('flows.common.showDetails')}
                         </div>
                         {isDetailsVisible && result && (
                             <>
@@ -116,19 +121,21 @@ function FlowAgent({ log, searchValue = '' }: FlowAgentProps) {
                             onClick={handleCopy}
                         />
                     </TooltipTrigger>
-                    <TooltipContent>Copy</TooltipContent>
+                    <TooltipContent>{t('flows.common.copy')}</TooltipContent>
                 </Tooltip>
                 <span className="text-muted-foreground/50">{formatDate(new Date(createdAt))}</span>
                 {taskId && (
                     <>
                         <span className="text-muted-foreground/50">|</span>
-                        <span className="text-muted-foreground/50">Task ID: {taskId}</span>
+                        <span className="text-muted-foreground/50">{t('flows.common.taskId', { id: taskId })}</span>
                     </>
                 )}
                 {subtaskId && (
                     <>
                         <span className="text-muted-foreground/50">|</span>
-                        <span className="text-muted-foreground/50">Subtask ID: {subtaskId}</span>
+                        <span className="text-muted-foreground/50">
+                            {t('flows.common.subtaskId', { id: subtaskId })}
+                        </span>
                     </>
                 )}
             </div>

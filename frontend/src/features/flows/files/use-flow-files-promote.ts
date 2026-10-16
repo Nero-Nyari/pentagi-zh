@@ -4,22 +4,27 @@ import { z } from 'zod';
 
 import type { OverwriteOutcome } from '@/components/shared/overwrite';
 import type { RestResourceList } from '@/features/resources/resources-rest';
+import type { Translator } from '@/lib/i18n/types';
 
-import { pluralizeItems } from '@/components/shared/file-manager';
+import { useTranslation } from '@/hooks/use-translation';
 import { api, getApiErrorMessage, getApiErrorStatusCode } from '@/lib/axios';
 
 import { FLOW_FILES_PROMOTE_API_PATH } from './flow-files-constants';
 
-export const flowFilesPromoteFormSchema = z.object({
-    destination: z
-        .string()
-        .trim()
-        .min(1, { message: 'Destination cannot be empty' })
-        .refine((value) => !value.startsWith('/'), { message: 'Destination must be a relative path' })
-        .refine((value) => !value.split('/').includes('..'), { message: 'Destination must not contain ".."' }),
-});
+// 校验文案需要按当前语言生成，因此把 schema 做成接收翻译器的工厂函数。
+export const flowFilesPromoteFormSchema = (t: Translator) =>
+    z.object({
+        destination: z
+            .string()
+            .trim()
+            .min(1, { message: t('flows.files.schema.destinationRequired') })
+            .refine((value) => !value.startsWith('/'), { message: t('flows.files.schema.destinationRelative') })
+            .refine((value) => !value.split('/').includes('..'), {
+                message: t('flows.files.schema.destinationDotDot'),
+            }),
+    });
 
-export type FlowFilesPromoteFormValues = z.infer<typeof flowFilesPromoteFormSchema>;
+export type FlowFilesPromoteFormValues = z.infer<ReturnType<typeof flowFilesPromoteFormSchema>>;
 
 interface PromoteRequestBody {
     destination: string;
@@ -53,6 +58,7 @@ interface UseFlowFilesPromoteResult {
  * with toast notifications and a loading flag.
  */
 export function useFlowFilesPromote({ flowId }: UseFlowFilesPromoteParams): UseFlowFilesPromoteResult {
+    const { t } = useTranslation();
     const [isPromoting, setIsPromoting] = useState(false);
 
     const promote = useCallback(
@@ -76,10 +82,13 @@ export function useFlowFilesPromote({ flowId }: UseFlowFilesPromoteParams): UseF
 
                 const description =
                     sources.length === 1
-                        ? `Stored at ${destination.trim()} in your resource library`
-                        : `Stored ${sources.length} ${pluralizeItems(sources.length)} under ${destination.trim()} in your resource library`;
+                        ? t('flows.files.toast.promoteSuccess.one', { path: destination.trim() })
+                        : t('flows.files.toast.promoteSuccess.many', {
+                              count: sources.length,
+                              path: destination.trim(),
+                          });
 
-                toast.success('Saved to resources', { description });
+                toast.success(t('flows.files.toast.promoteSuccess'), { description });
 
                 return { kind: 'ok' };
             } catch (error) {
@@ -87,16 +96,16 @@ export function useFlowFilesPromote({ flowId }: UseFlowFilesPromoteParams): UseF
                     return { kind: 'conflict' };
                 }
 
-                const description = getApiErrorMessage(error, 'Failed to save resource');
+                const description = getApiErrorMessage(error, t('flows.files.toast.promoteFailed.description'));
 
-                toast.error('Save as resource failed', { description });
+                toast.error(t('flows.files.toast.promoteFailed'), { description });
 
                 return { kind: 'error' };
             } finally {
                 setIsPromoting(false);
             }
         },
-        [flowId],
+        [flowId, t],
     );
 
     return {

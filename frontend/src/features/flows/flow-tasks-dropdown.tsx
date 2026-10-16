@@ -12,6 +12,7 @@ import {
     CommandSeparator,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 import { useFlow } from '@/providers/flow-provider';
 
@@ -27,6 +28,7 @@ interface FlowTasksDropdownProps {
 }
 
 function FlowTasksDropdown({ disabled, onChange, value }: FlowTasksDropdownProps) {
+    const { t } = useTranslation();
     const { flowData } = useFlow();
     const tasks = useMemo(() => flowData?.tasks ?? [], [flowData?.tasks]);
     const [isOpen, setIsOpen] = useState(false);
@@ -114,7 +116,7 @@ function FlowTasksDropdown({ disabled, onChange, value }: FlowTasksDropdownProps
         >
             <PopoverTrigger asChild>
                 <Button
-                    aria-label="Filter tasks"
+                    aria-label={t('flows.tasksDropdown.filter')}
                     aria-pressed={hasActiveFilters}
                     disabled={disabled}
                     size="icon"
@@ -128,9 +130,9 @@ function FlowTasksDropdown({ disabled, onChange, value }: FlowTasksDropdownProps
                 className="w-[360px] p-0"
             >
                 <Command>
-                    <CommandInput placeholder="Search tasks..." />
+                    <CommandInput placeholder={t('flows.tasksDropdown.search')} />
                     <CommandList>
-                        <CommandEmpty>Tasks not found</CommandEmpty>
+                        <CommandEmpty>{t('flows.tasksDropdown.notFound')}</CommandEmpty>
                         {tasks?.length ? (
                             tasks.map((task) => (
                                 <CommandGroup key={task.id}>
@@ -198,7 +200,7 @@ function FlowTasksDropdown({ disabled, onChange, value }: FlowTasksDropdownProps
                                 className="text-muted-foreground justify-center py-6 text-center"
                                 disabled
                             >
-                                No available tasks
+                                {t('flows.tasksDropdown.empty')}
                             </CommandItem>
                         )}
                     </CommandList>
@@ -213,7 +215,7 @@ function FlowTasksDropdown({ disabled, onChange, value }: FlowTasksDropdownProps
                                     }}
                                 >
                                     <X />
-                                    Clear filter
+                                    {t('flows.tasksDropdown.clear')}
                                 </CommandItem>
                             </CommandGroup>
                         </>

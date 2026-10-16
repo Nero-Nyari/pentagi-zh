@@ -3,19 +3,21 @@ import { enUS } from 'date-fns/locale';
 import { Lock, Mail, User } from 'lucide-react';
 import { useState } from 'react';
 
-import { AppHeader, AppHeaderContent, AppHeaderTitle } from '@/components/layouts/app/app-header';
+import { AppHeader, AppHeaderActions, AppHeaderContent, AppHeaderTitle } from '@/components/layouts/app/app-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmailChangeForm } from '@/features/authentication/email-change-form';
 import { NameChangeForm } from '@/features/authentication/name-change-form';
 import { PasswordChangeForm } from '@/features/authentication/password-change-form';
+import { useTranslation } from '@/hooks/use-translation';
 import { formatAccountProvider } from '@/lib/utils/format';
 import { useUser } from '@/providers/user-provider';
 
 type EditingSection = 'email' | 'name' | 'password';
 
 function SettingsAccount() {
+    const { t } = useTranslation();
     const { authInfo } = useUser();
     const user = authInfo?.user;
     const [editingSections, setEditingSections] = useState<Set<EditingSection>>(new Set());
@@ -38,14 +40,19 @@ function SettingsAccount() {
     const initial = ([...(displayName || '?')][0] ?? '?').toUpperCase();
     const createdAt = user.created_at ? new Date(user.created_at) : null;
     const memberSince = createdAt && isValid(createdAt) ? format(createdAt, 'MMMM yyyy', { locale: enUS }) : null;
-    const accountLabel = isLocal ? 'Local account' : (formatAccountProvider(user.provider) ?? 'OAuth account');
+    const accountLabel = isLocal
+        ? t('settings.account.localAccount')
+        : (formatAccountProvider(user.provider) ?? t('settings.account.oauthAccount'));
 
     return (
         <>
             <AppHeader>
                 <AppHeaderContent>
-                    <AppHeaderTitle icon={<User className="size-4 shrink-0" />}>Account</AppHeaderTitle>
+                    <AppHeaderTitle icon={<User className="size-4 shrink-0" />}>
+                        {t('settings.account.title')}
+                    </AppHeaderTitle>
                 </AppHeaderContent>
+                <AppHeaderActions />
             </AppHeader>
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
                 <Card>
@@ -56,7 +63,9 @@ function SettingsAccount() {
                         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                             <CardTitle className="truncate">{displayName}</CardTitle>
                             {memberSince && (
-                                <CardDescription className="truncate">Member since {memberSince}</CardDescription>
+                                <CardDescription className="truncate">
+                                    {t('settings.account.memberSince', { date: memberSince })}
+                                </CardDescription>
                             )}
                         </div>
                         <Badge
@@ -71,8 +80,8 @@ function SettingsAccount() {
                 <Card>
                     <CardHeader className="flex-row items-start justify-between gap-4">
                         <div className="grid gap-1.5">
-                            <CardTitle>Display name</CardTitle>
-                            <CardDescription>The name shown across the app.</CardDescription>
+                            <CardTitle>{t('settings.account.displayName.title')}</CardTitle>
+                            <CardDescription>{t('settings.account.displayName.description')}</CardDescription>
                         </div>
                         {!editingSections.has('name') && (
                             <Button
@@ -80,7 +89,7 @@ function SettingsAccount() {
                                 size="sm"
                                 variant="outline"
                             >
-                                Change
+                                {t('settings.account.change')}
                             </Button>
                         )}
                     </CardHeader>
@@ -102,9 +111,11 @@ function SettingsAccount() {
                 <Card>
                     <CardHeader className="flex-row items-start justify-between gap-4">
                         <div className="grid gap-1.5">
-                            <CardTitle>Email address</CardTitle>
+                            <CardTitle>{t('settings.account.email.title')}</CardTitle>
                             <CardDescription>
-                                {isLocal ? 'The email you use to sign in.' : `Linked from your ${accountLabel}.`}
+                                {isLocal
+                                    ? t('settings.account.email.description.local')
+                                    : t('settings.account.email.description.oauth', { provider: accountLabel })}
                             </CardDescription>
                         </div>
                         {isLocal && !editingSections.has('email') && (
@@ -113,7 +124,7 @@ function SettingsAccount() {
                                 size="sm"
                                 variant="outline"
                             >
-                                Change
+                                {t('settings.account.change')}
                             </Button>
                         )}
                     </CardHeader>
@@ -136,8 +147,8 @@ function SettingsAccount() {
                     <Card>
                         <CardHeader className="flex-row items-start justify-between gap-4">
                             <div className="grid gap-1.5">
-                                <CardTitle>Password</CardTitle>
-                                <CardDescription>Change your account password.</CardDescription>
+                                <CardTitle>{t('settings.account.password.title')}</CardTitle>
+                                <CardDescription>{t('settings.account.password.description')}</CardDescription>
                             </div>
                             {!editingSections.has('password') && (
                                 <Button
@@ -145,7 +156,7 @@ function SettingsAccount() {
                                     size="sm"
                                     variant="outline"
                                 >
-                                    Change
+                                    {t('settings.account.change')}
                                 </Button>
                             )}
                         </CardHeader>

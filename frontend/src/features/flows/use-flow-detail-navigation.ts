@@ -1,8 +1,10 @@
+import { useCallback } from 'react';
+
 import { useDetailNavigation } from '@/components/shared/detail-navigation';
+import { useTranslation } from '@/hooks/use-translation';
 import { routes } from '@/lib/routes';
 import { type Flow, useFlows } from '@/providers/flows-provider';
 
-const getLabel = (item: Flow) => item.title || `Flow #${item.id}`;
 const getSearchableText = (item: Flow) => item.title;
 const getId = (item: Flow) => String(item.id);
 const getHref = (item: Flow) => routes.flow(item.id);
@@ -17,7 +19,11 @@ const getHref = (item: Flow) => routes.flow(item.id);
  * (e.g. `/flows/new`) so the controller reports an unmatched current item.
  */
 export function useFlowDetailNavigation(currentId: null | string | undefined) {
+    const { t } = useTranslation();
     const { flows } = useFlows();
+
+    // 标题缺失时用本地化的“Flow #id”兜底；`t` 随语言变化而变，因此必须进依赖数组。
+    const getLabel = useCallback((item: Flow) => item.title || t('flows.detail.fallbackTitle', { id: item.id }), [t]);
 
     return useDetailNavigation<Flow>({
         currentId,
