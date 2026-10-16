@@ -25,8 +25,29 @@
 >
 > 所有版权与许可以上游为准，请完整阅读并遵守 [LICENSE](LICENSE)、[EULA.md](EULA.md) 与 [NOTICE](NOTICE)；本项目仅可用于你拥有或已获得明确书面授权的系统。
 
+## 汉化版启动 / Running the Localized Build
+
+> ⚠️ 官方预构建镜像 `vxcontrol/pentagi` **不含**本汉化，直接运行 `docker compose up -d` 可能得到英文界面；汉化需从本仓库源码构建。
+> The prebuilt upstream image does **not** include this localization — build from source with this repository.
+
+```bash
+git clone https://github.com/Nero-Nyari/pentagi-zh.git
+cd pentagi-zh
+cp .env.example .env          # 至少填入一个 LLM 供应商的 API Key
+# 可选（国内网络加速 Go 模块下载）： echo "GOPROXY=https://goproxy.cn,direct" >> .env
+
+docker compose up -d --build   # 必须带 --build；前端与后端在镜像内编译，汉化才会生效
+```
+
+- 本仓库自带 [`docker-compose.override.yml`](docker-compose.override.yml)，Docker Compose 会自动合并它，把 `pentagi` 服务改为**从源码构建**，而 `pgvector`、`scraper` 等其余服务仍使用上游镜像。
+- 三个 `example.*.provider.yml` 已随本仓库提供，**无需**再按下方 Manual Installation 的步骤另行下载。
+- 建议在 `.env` 中把 `PENTAGI_IMAGE` 设为 `pentagi:local`（override 的默认值），避免本地构建的镜像与官方镜像标签 `vxcontrol/pentagi:latest` 混淆。
+- 启动后访问 `https://127.0.0.1:${PENTAGI_LISTEN_PORT:-8443}`（默认为自签 HTTPS 证书，浏览器需手动放行）。
+- 供应商配置、端口、安全设置等通用说明仍适用下方 [Quick Start](#quick-start) 与 [Manual Installation](#manual-installation)。
+
 ## Table of Contents
 
+- [汉化版启动 / Running the Localized Build](#汉化版启动--running-the-localized-build)
 - [Overview](#overview)
 - [Features](#features)
 - [Architecture](#architecture)
