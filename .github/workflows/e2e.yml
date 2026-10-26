@@ -106,7 +106,15 @@ jobs:
 
   # Visual snapshots: pinned container = pixel-stable baselines. Advisory —
   # never a required check.
+  #
+  # 汉化版停用：本地化在页头新增了语言切换按钮，每个页面的像素都随之变化，
+  # 上游的英文基线必然失配（容差仅 200 像素）。功能性回归仍由 e2e-mock 与
+  # e2e-local 两个 job 覆盖；如需恢复，删除下面的 `if: false` 并在固定容器中
+  # 用 `pnpm e2e:visual:update` 重建基线。
+  # Disabled in this fork: the added language toggle shifts every page's pixels,
+  # so the upstream baselines cannot match.
   e2e-visual:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     container:
